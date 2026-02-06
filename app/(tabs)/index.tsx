@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
+import { HADITH_COLUMNS } from "../../lib/queries";
 import HadithCard, { Hadith } from "../../components/HadithCard";
 
 export default function HomeScreen() {
@@ -23,7 +24,7 @@ export default function HomeScreen() {
       // Get total count, then fetch a random one
       const { count } = await supabase
         .from("hadith")
-        .select("*", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true });
 
       if (!count || count === 0) {
         setError("No hadith found in the database.");
@@ -33,7 +34,7 @@ export default function HomeScreen() {
       const randomOffset = Math.floor(Math.random() * count);
       const { data, error: fetchError } = await supabase
         .from("hadith")
-        .select("*")
+        .select(HADITH_COLUMNS)
         .range(randomOffset, randomOffset)
         .single();
 

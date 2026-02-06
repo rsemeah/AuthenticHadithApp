@@ -31,17 +31,18 @@ export default function CollectionsScreen() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch distinct collection names with counts using RPC or manual grouping
+      // Fetch distinct book names (the primary collection identifier)
       const { data, error: fetchError } = await supabase
         .from("hadith")
-        .select("collection_name");
+        .select("book");
 
       if (fetchError) throw fetchError;
 
       // Group and count client-side
       const counts: Record<string, number> = {};
-      (data ?? []).forEach((row: { collection_name: string }) => {
-        counts[row.collection_name] = (counts[row.collection_name] || 0) + 1;
+      (data ?? []).forEach((row: { book: string | null }) => {
+        const name = row.book || "Unknown";
+        counts[name] = (counts[name] || 0) + 1;
       });
 
       const sorted = Object.entries(counts)
@@ -56,8 +57,8 @@ export default function CollectionsScreen() {
     }
   };
 
-  const handlePress = (collectionName: string) => {
-    router.push(`/search?collection=${encodeURIComponent(collectionName)}`);
+  const handlePress = (bookName: string) => {
+    router.push(`/search?collection=${encodeURIComponent(bookName)}`);
   };
 
   if (loading) {

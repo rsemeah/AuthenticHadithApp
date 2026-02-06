@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
+import { HADITH_COLUMNS } from "../../lib/queries";
 import { Hadith } from "../../components/HadithCard";
 
 interface Message {
@@ -56,8 +57,8 @@ export default function AssistantScreen() {
       // Search Supabase for relevant hadith
       const { data, error } = await supabase
         .from("hadith")
-        .select("*")
-        .or(`text_en.ilike.%${trimmed}%,text_ar.ilike.%${trimmed}%`)
+        .select(HADITH_COLUMNS)
+        .or(`english_text.ilike.%${trimmed}%,arabic_text.ilike.%${trimmed}%`)
         .limit(5);
 
       if (error) throw error;
@@ -72,8 +73,8 @@ export default function AssistantScreen() {
         };
       } else {
         // Collect unique collection names
-        const collections = [...new Set(data.map((h) => h.collection_name))];
-        const summary = `I found ${data.length} relevant hadith in ${collections.join(", ")}. Here are the results:`;
+        const books = [...new Set(data.map((h) => h.book || h.collection_name || "Unknown"))];
+        const summary = `I found ${data.length} relevant hadith in ${books.join(", ")}. Here are the results:`;
 
         assistantMsg = {
           id: (Date.now() + 1).toString(),
@@ -127,17 +128,17 @@ export default function AssistantScreen() {
               >
                 <View style={styles.sourceHeader}>
                   <Text style={styles.sourceCollection}>
-                    {h.collection_name}
+                    {h.book || h.collection_name || "Unknown"}
                   </Text>
-                  {h.hadith_number != null && (
-                    <Text style={styles.sourceNumber}>#{h.hadith_number}</Text>
+                  {h.reference && (
+                    <Text style={styles.sourceNumber}>{h.reference}</Text>
                   )}
-                  {h.grade && (
-                    <Text style={styles.sourceGrade}>{h.grade}</Text>
+                  {h.grading && (
+                    <Text style={styles.sourceGrade}>{h.grading}</Text>
                   )}
                 </View>
                 <Text style={styles.sourcePreview} numberOfLines={2}>
-                  {h.text_en}
+                  {h.english_text}
                 </Text>
                 <Text style={styles.openLink}>Open →</Text>
               </Pressable>

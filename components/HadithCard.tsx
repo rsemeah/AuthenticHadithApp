@@ -3,13 +3,17 @@ import { useRouter } from "expo-router";
 import { Colors } from "../lib/colors";
 
 export interface Hadith {
-  id: number;
-  collection_name: string;
-  book_number: number | null;
+  id: string;
+  book: string | null;
+  chapter: string | null;
+  arabic_text: string | null;
+  english_text: string | null;
+  grading: string | null;
+  collection_name: string | null;
+  reference: string | null;
+  narrator: string | null;
   hadith_number: number | null;
-  text_ar: string;
-  text_en: string;
-  grade: string | null;
+  book_number: number | null;
 }
 
 interface Props {
@@ -29,36 +33,48 @@ function gradeColor(grade: string | null): string {
 export default function HadithCard({ hadith, showFull = false }: Props) {
   const router = useRouter();
 
+  const displayName = hadith.book || hadith.collection_name || "Unknown";
+  const arabicText = hadith.arabic_text || "";
+  const englishText = hadith.english_text || "";
+
   const content = (
     <View style={styles.card}>
       <View style={styles.meta}>
-        <Text style={styles.collection}>{hadith.collection_name}</Text>
-        {hadith.hadith_number != null && (
-          <Text style={styles.number}>#{hadith.hadith_number}</Text>
+        <Text style={styles.collection}>{displayName}</Text>
+        {hadith.reference && (
+          <Text style={styles.number}>{hadith.reference}</Text>
         )}
-        {hadith.grade && (
-          <Text style={[styles.grade, { color: gradeColor(hadith.grade) }]}>
-            {hadith.grade}
+        {hadith.grading && (
+          <Text style={[styles.grade, { color: gradeColor(hadith.grading) }]}>
+            {hadith.grading}
           </Text>
         )}
       </View>
 
-      <Text
-        style={styles.arabic}
-        numberOfLines={showFull ? undefined : 4}
-      >
-        {hadith.text_ar}
-      </Text>
+      {arabicText.length > 0 && (
+        <Text
+          style={styles.arabic}
+          numberOfLines={showFull ? undefined : 4}
+        >
+          {arabicText}
+        </Text>
+      )}
 
-      <Text
-        style={styles.english}
-        numberOfLines={showFull ? undefined : 4}
-      >
-        {hadith.text_en}
-      </Text>
+      {englishText.length > 0 && (
+        <Text
+          style={styles.english}
+          numberOfLines={showFull ? undefined : 4}
+        >
+          {englishText}
+        </Text>
+      )}
 
-      {hadith.book_number != null && (
-        <Text style={styles.bookInfo}>Book {hadith.book_number}</Text>
+      {hadith.narrator && (
+        <Text style={styles.narrator}>Narrator: {hadith.narrator}</Text>
+      )}
+
+      {hadith.chapter && (
+        <Text style={styles.bookInfo}>{hadith.chapter}</Text>
       )}
     </View>
   );
@@ -122,13 +138,18 @@ const styles = StyleSheet.create({
     textAlign: "right",
     writingDirection: "rtl",
     marginBottom: 12,
-    fontFamily: undefined, // uses system Arabic font
   },
   english: {
     fontSize: 15,
     lineHeight: 24,
     color: Colors.text,
     marginBottom: 8,
+  },
+  narrator: {
+    fontSize: 13,
+    color: Colors.primaryLight,
+    fontStyle: "italic",
+    marginTop: 4,
   },
   bookInfo: {
     fontSize: 12,

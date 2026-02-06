@@ -12,6 +12,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
+import { HADITH_COLUMNS } from "../../lib/queries";
 import HadithCard, { Hadith } from "../../components/HadithCard";
 
 export default function SearchScreen() {
@@ -31,14 +32,15 @@ export default function SearchScreen() {
     setLoading(true);
     setSearched(true);
     try {
-      let q = supabase.from("hadith").select("*");
+      let q = supabase.from("hadith").select(HADITH_COLUMNS);
 
       if (collectionFilter) {
-        q = q.eq("collection_name", collectionFilter);
+        q = q.eq("book", collectionFilter);
       }
 
       if (trimmed) {
-        q = q.or(`text_en.ilike.%${trimmed}%,text_ar.ilike.%${trimmed}%`);
+        // Use full-text search on tsv column, fall back to ilike for Arabic
+        q = q.or(`english_text.ilike.%${trimmed}%,arabic_text.ilike.%${trimmed}%`);
       }
 
       const { data, error } = await q.limit(50);

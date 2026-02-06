@@ -10,6 +10,7 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
+import { HADITH_COLUMNS } from "../../lib/queries";
 import HadithCard, { Hadith } from "../../components/HadithCard";
 
 export default function HadithDetailScreen() {
@@ -29,8 +30,8 @@ export default function HadithDetailScreen() {
     try {
       const { data, error: fetchError } = await supabase
         .from("hadith")
-        .select("*")
-        .eq("id", Number(id))
+        .select(HADITH_COLUMNS)
+        .eq("id", id)
         .single();
 
       if (fetchError) throw fetchError;
