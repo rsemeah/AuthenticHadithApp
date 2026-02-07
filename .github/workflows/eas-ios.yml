@@ -1,0 +1,56 @@
+name: EAS iOS Build & Submit
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build_and_submit:
+    name: Build and Submit iOS to TestFlight
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd app
+          npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Configure App Store Connect API key
+        if: ${{ secrets.APPLE_API_KEY_JSON != '' }}
+        run: |
+          echo "Writing App Store Connect API key file"
+          echo "${{ secrets.APPLE_API_KEY_JSON }}" > ./appstoreconnect.json
+
+      - name: Login to EAS
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          eas whoami || true
+
+      - name: Build iOS (EAS)
+        env:
+          EAS_PROJECT_DIR: app
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          eas build -p ios --profile production --non-interactive --output-json
+
+      - name: Submit to TestFlight
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          if [ -f ./appstoreconnect.json ]; then
+            eas submit -p ios --latest --apple-api-key-path ./appstoreconnect.json --non-interactive
+          else
+            eas submit -p ios --latest --non-interactive --apple-id "${{ secrets.APPLE_ID }}" --apple-team-id "${{ secrets.APPLE_TEAM_ID }}"
+          fi
