@@ -1,19 +1,5 @@
 {
   "cli": {
     "version": ">= 3.0.0"
-  },
-  "build": {
-    "production": {
-      "ios": {
-        "workflow": "managed",
-        "buildType": "app-store"
-      }
-    },
-    "development": {
-      "ios": {
-        "workflow": "managed",
-        "buildType": "development"
-      }
-    }
   }
 }
