@@ -1,0 +1,347 @@
+"use client"
+
+import React from "react"
+
+import { useEffect, useState, useRef, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ChevronLeft, User, Bookmark, Settings, LogOut, Camera, X, Loader2 } from "lucide-react"
+import { BottomNavigation } from "@/components/home/bottom-navigation"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+
+interface UserProfile {
+  name: string
+  avatar_url: string | null
+  school_of_thought: string | null
+}
+
+function ProfileContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const tab = searchParams.get("tab") || "profile"
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [savedHadiths, setSavedHadiths] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const supabase = getSupabaseBrowserClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (user) {
+        setUserId(user.id)
+        const { data: profileData } = await supabase.from("profiles").select("*").eq("user_id", user.id).single()
+
+        if (profileData) {
+          setProfile(profileData)
+        }
+
+        if (tab === "saved") {
+          const { data: savedData } = await supabase
+            .from("saved_hadiths")
+            .select(`
+              created_at,
+              hadiths (*)
+            `)
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+
+          setSavedHadiths(savedData?.map((s: any) => s.hadiths).filter(Boolean) || [])
+        }
+      }
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [tab])
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+
+    // Validate file
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be less than 5MB")
+      return
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("Please upload a JPG, PNG, or WebP image")
+      return
+    }
+
+    setUploading(true)
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const fileExt = file.name.split(".").pop()
+      const filePath = `${userId}/avatar.${fileExt}`
+
+      // Delete old avatar if exists
+      await supabase.storage.from("avatars").remove([`${userId}/avatar.jpg`, `${userId}/avatar.png`, `${userId}/avatar.webp`])
+
+      // Upload new avatar
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(filePath)
+
+      // Add cache-busting query param
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("user_id", userId)
+
+      if (updateError) throw updateError
+
+      setProfile((prev) => (prev ? { ...prev, avatar_url: publicUrl } : prev))
+    } catch (err) {
+      console.error("Avatar upload failed:", err)
+      alert("Failed to upload image. Please try again.")
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    if (!userId) return
+
+    setUploading(true)
+    try {
+      const supabase = getSupabaseBrowserClient()
+
+      // Remove all possible avatar files
+      await supabase.storage.from("avatars").remove([`${userId}/avatar.jpg`, `${userId}/avatar.png`, `${userId}/avatar.webp`])
+
+      // Clear avatar_url in profile
+      await supabase.from("profiles").update({ avatar_url: null }).eq("user_id", userId)
+
+      setProfile((prev) => (prev ? { ...prev, avatar_url: null } : prev))
+    } catch (err) {
+      console.error("Avatar removal failed:", err)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    const supabase = getSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    document.cookie = "qbos_onboarded=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+    router.push("/")
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen marble-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#C5A059] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen marble-bg pb-20 md:pb-0">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-[#6b7280]" />
+          </button>
+          <h1 className="text-lg font-semibold text-[#1a1f36]">Profile</h1>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Profile Card */}
+        <div className="gold-border rounded-xl p-6 premium-card mb-6">
+          <div className="flex items-center gap-4">
+            {/* Avatar with upload */}
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-[#C5A059] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C5A059]/50 focus:ring-offset-2 disabled:cursor-wait"
+                aria-label="Upload profile picture"
+              >
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url || "/placeholder.svg"}
+                    alt={profile.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-[#F8F6F2] flex items-center justify-center">
+                    <User className="w-10 h-10 text-[#C5A059]" />
+                  </div>
+                )}
+
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  {uploading ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-white" />
+                  )}
+                </div>
+
+                {/* Always show camera badge */}
+                {!uploading && (
+                  <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#C5A059] border-2 border-white flex items-center justify-center shadow-sm">
+                    <Camera className="w-3.5 h-3.5 text-white" />
+                  </div>
+                )}
+                {uploading && (
+                  <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-[#C5A059] border-2 border-white flex items-center justify-center shadow-sm">
+                    <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                  </div>
+                )}
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleAvatarUpload}
+                className="hidden"
+                aria-label="Choose profile picture"
+              />
+            </div>
+
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-[#1a1f36]">{profile?.name || "User"}</h2>
+              {profile?.school_of_thought && (
+                <p className="text-sm text-muted-foreground">{profile.school_of_thought}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="mt-1 text-xs text-[#C5A059] hover:text-[#a8863e] transition-colors disabled:opacity-50"
+              >
+                {uploading ? "Uploading..." : profile?.avatar_url ? "Change photo" : "Add photo"}
+              </button>
+            </div>
+          </div>
+
+          {/* Remove photo option */}
+          {profile?.avatar_url && !uploading && (
+            <button
+              type="button"
+              onClick={handleRemoveAvatar}
+              className="mt-3 ml-24 text-xs text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Remove photo
+            </button>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => router.push("/profile")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              tab === "profile"
+                ? "bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-white"
+                : "bg-[#F8F6F2] border border-[#e5e7eb] text-[#1a1f36]"
+            }`}
+          >
+            Profile
+          </button>
+          <button
+            onClick={() => router.push("/profile?tab=saved")}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              tab === "saved"
+                ? "bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-white"
+                : "bg-[#F8F6F2] border border-[#e5e7eb] text-[#1a1f36]"
+            }`}
+          >
+            Saved
+          </button>
+        </div>
+
+        {tab === "profile" ? (
+          <div className="space-y-4">
+            <button
+              onClick={() => router.push("/settings")}
+              className="w-full gold-border rounded-xl p-4 premium-card flex items-center gap-4 hover:-translate-y-0.5 transition-transform"
+            >
+              <div className="w-10 h-10 rounded-lg gold-icon-bg flex items-center justify-center">
+                <Settings className="w-5 h-5 text-[#C5A059]" />
+              </div>
+              <span className="font-medium text-[#1a1f36]">Settings</span>
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full border border-red-200 rounded-xl p-4 bg-red-50 flex items-center gap-4 hover:-translate-y-0.5 transition-transform"
+            >
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-red-600" />
+              </div>
+              <span className="font-medium text-red-600">Sign Out</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {savedHadiths.length > 0 ? (
+              savedHadiths.map((hadith) => (
+                <button
+                  key={hadith.id}
+                  onClick={() => router.push(`/hadith/${hadith.id}`)}
+                  className="w-full gold-border rounded-xl p-4 premium-card text-left hover:-translate-y-0.5 transition-transform"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-1 rounded text-xs font-bold text-white bg-gradient-to-r from-[#1B5E43] to-[#2D7A5B]">
+                      {hadith.collection}
+                    </span>
+                  </div>
+                  <p className="text-sm text-[#1a1f36] line-clamp-2">{hadith.english_translation}</p>
+                </button>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <Bookmark className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
+                <p className="text-muted-foreground">No saved hadiths yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Tap the bookmark icon on any hadith to save it</p>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      <BottomNavigation />
+    </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen marble-bg flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-[#C5A059] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <ProfileContent />
+    </Suspense>
+  )
+}
