@@ -35,7 +35,7 @@ export default function SearchScreen() {
       let q = supabase.from("hadith").select(HADITH_COLUMNS);
 
       if (collectionFilter) {
-        q = q.eq("book", collectionFilter);
+        q = q.eq("collection_name", collectionFilter);
       }
 
       if (trimmed) {
