@@ -6,12 +6,14 @@ import {
   FlatList,
   Pressable,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
 import { useAuth } from "../../lib/auth";
+import { QUICK_TOPICS } from "../../lib/topics";
 
 interface LearningPath {
   id: string;
@@ -178,11 +180,46 @@ export default function LearnScreen() {
           Structured journeys through authentic hadith
         </Text>
       </View>
+      {/* Quick Topic Search */}
+      <View style={styles.topicsSection}>
+        <Text style={styles.topicsSectionTitle}>Look up a topic</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.topicsScroll}
+        >
+          {QUICK_TOPICS.map((t) => (
+            <Pressable
+              key={t.query}
+              style={({ pressed }) => [
+                styles.topicChip,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+              onPress={() =>
+                router.push(
+                  `/(tabs)/search?q=${encodeURIComponent(t.query)}&label=${encodeURIComponent(t.label)}`
+                )
+              }
+            >
+              <Ionicons
+                name={t.icon as any}
+                size={16}
+                color={Colors.primary}
+              />
+              <Text style={styles.topicChipText}>{t.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
       <FlatList
         data={paths}
         keyExtractor={(item) => item.id}
         renderItem={renderPath}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <Text style={styles.pathsSectionTitle}>Learning Paths</Text>
+        }
         ListEmptyComponent={
           <View style={styles.center}>
             <Text style={styles.emptyText}>
@@ -307,5 +344,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textSecondary,
     textAlign: "center",
+  },
+  topicsSection: {
+    paddingTop: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  topicsSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: 10,
+    paddingHorizontal: 16,
+  },
+  topicsScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+    paddingBottom: 12,
+  },
+  topicChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  topicChipText: {
+    fontSize: 13,
+    color: Colors.text,
+    fontWeight: "500",
+  },
+  pathsSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: 12,
   },
 });

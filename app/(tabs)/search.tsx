@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,10 +14,15 @@ import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
 import { HADITH_COLUMNS } from "../../lib/queries";
 import HadithCard, { Hadith } from "../../components/HadithCard";
+import { expandQuery, buildTsQuery } from "../../lib/topics";
 
 export default function SearchScreen() {
-  const params = useLocalSearchParams<{ collection?: string }>();
-  const [query, setQuery] = useState("");
+  const params = useLocalSearchParams<{
+    collection?: string;
+    q?: string;
+    label?: string;
+  }>();
+  const [query, setQuery] = useState(params.q ?? "");
   const [results, setResults] = useState<Hadith[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -25,27 +30,95 @@ export default function SearchScreen() {
     params.collection ?? null
   );
 
-  const performSearch = useCallback(async () => {
-    const trimmed = query.trim();
+  // Auto-search when arriving from Learn topic chips
+  useEffect(() => {
+    if (params.q) {
+      setQuery(params.q);
+      performSmartSearch(params.q);
+    }
+  }, [params.q]);
+
+  const performSmartSearch = async (searchQuery?: string) => {
+    const trimmed = (searchQuery ?? query).trim();
     if (!trimmed && !collectionFilter) return;
 
     setLoading(true);
     setSearched(true);
     try {
-      let q = supabase.from("hadith").select(HADITH_COLUMNS);
-
-      if (collectionFilter) {
-        q = q.eq("collection_name", collectionFilter);
-      }
+      let data: Hadith[] | null = null;
 
       if (trimmed) {
-        // Use full-text search on tsv column, fall back to ilike for Arabic
-        q = q.or(`english_text.ilike.%${trimmed}%,arabic_text.ilike.%${trimmed}%`);
+        // Smart search: expand query with synonyms, then try tsv first
+        const expanded = expandQuery(trimmed);
+        const tsQuery = buildTsQuery(expanded);
+
+        // Try full-text search first
+        if (tsQuery) {
+          let q = supabase
+            .from("hadith")
+            .select(HADITH_COLUMNS)
+            .textSearch("tsv", tsQuery, { type: "plain" });
+
+          if (collectionFilter) {
+            q = q.eq("collection_name", collectionFilter);
+          }
+
+          const { data: tsvData } = await q.limit(50);
+          if (tsvData && tsvData.length > 0) {
+            data = tsvData;
+          }
+        }
+
+        // Fallback: ilike with expanded terms
+        if (!data || data.length === 0) {
+          const topTerms = expanded.slice(0, 4);
+          for (const term of topTerms) {
+            if (term.length < 3) continue;
+            let q = supabase
+              .from("hadith")
+              .select(HADITH_COLUMNS)
+              .or(
+                `english_text.ilike.%${term}%,arabic_text.ilike.%${term}%`
+              );
+
+            if (collectionFilter) {
+              q = q.eq("collection_name", collectionFilter);
+            }
+
+            const { data: iLikeData } = await q.limit(50);
+            if (iLikeData && iLikeData.length > 0) {
+              data = iLikeData;
+              break;
+            }
+          }
+        }
+
+        // Final fallback: original query
+        if (!data || data.length === 0) {
+          let q = supabase
+            .from("hadith")
+            .select(HADITH_COLUMNS)
+            .or(
+              `english_text.ilike.%${trimmed}%,arabic_text.ilike.%${trimmed}%`
+            );
+
+          if (collectionFilter) {
+            q = q.eq("collection_name", collectionFilter);
+          }
+
+          const { data: fallbackData } = await q.limit(50);
+          data = fallbackData;
+        }
+      } else {
+        // Collection-only browse
+        let q = supabase.from("hadith").select(HADITH_COLUMNS);
+        if (collectionFilter) {
+          q = q.eq("collection_name", collectionFilter);
+        }
+        const { data: browseData } = await q.limit(50);
+        data = browseData;
       }
 
-      const { data, error } = await q.limit(50);
-
-      if (error) throw error;
       setResults(data ?? []);
     } catch (e: any) {
       console.error("Search error:", e.message);
@@ -53,7 +126,7 @@ export default function SearchScreen() {
     } finally {
       setLoading(false);
     }
-  }, [query, collectionFilter]);
+  };
 
   const clearFilter = () => {
     setCollectionFilter(null);
@@ -83,22 +156,31 @@ export default function SearchScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Search hadith in English or Arabic..."
+          placeholder="Search hadith — try 'washing', 'patience', 'wives'..."
           placeholderTextColor={Colors.textSecondary}
           value={query}
           onChangeText={setQuery}
-          onSubmitEditing={performSearch}
+          onSubmitEditing={() => performSmartSearch()}
           returnKeyType="search"
           autoCorrect={false}
         />
         {query.length > 0 && (
-          <Pressable onPress={() => { setQuery(""); setResults([]); setSearched(false); }}>
+          <Pressable
+            onPress={() => {
+              setQuery("");
+              setResults([]);
+              setSearched(false);
+            }}
+          >
             <Ionicons name="close" size={20} color={Colors.textSecondary} />
           </Pressable>
         )}
       </View>
 
-      <Pressable style={styles.searchBtn} onPress={performSearch}>
+      <Pressable
+        style={styles.searchBtn}
+        onPress={() => performSmartSearch()}
+      >
         <Text style={styles.searchBtnText}>Search</Text>
       </Pressable>
 
@@ -111,24 +193,37 @@ export default function SearchScreen() {
       {!loading && searched && results.length === 0 && (
         <View style={styles.center}>
           <Ionicons name="search-outline" size={48} color={Colors.border} />
-          <Text style={styles.emptyText}>No hadith found for that query.</Text>
+          <Text style={styles.emptyText}>
+            No hadith found. Try different words — e.g. "prayer" instead of
+            "salah", or "eating" instead of "food".
+          </Text>
         </View>
       )}
 
       {!loading && results.length > 0 && (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <HadithCard hadith={item} />}
-          contentContainerStyle={styles.listContent}
-        />
+        <>
+          <Text style={styles.resultCount}>
+            {results.length} result{results.length !== 1 ? "s" : ""}
+          </Text>
+          <FlatList
+            data={results}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <HadithCard hadith={item} />}
+            contentContainerStyle={styles.listContent}
+          />
+        </>
       )}
 
       {!searched && !loading && (
         <View style={styles.center}>
           <Ionicons name="book-outline" size={48} color={Colors.border} />
           <Text style={styles.emptyText}>
-            Search across {collectionFilter ? collectionFilter : "all collections"}
+            Search across{" "}
+            {collectionFilter ? collectionFilter : "all collections"}
+          </Text>
+          <Text style={styles.hintText}>
+            Smart search understands related terms — "washing" also finds wudu,
+            ablution, purification
           </Text>
         </View>
       )}
@@ -192,11 +287,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 40,
+    paddingHorizontal: 24,
   },
   emptyText: {
     marginTop: 12,
     color: Colors.textSecondary,
     fontSize: 14,
+    textAlign: "center",
+  },
+  hintText: {
+    marginTop: 8,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    textAlign: "center",
+    fontStyle: "italic",
+    lineHeight: 18,
+  },
+  resultCount: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: "600",
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
   listContent: {
     paddingBottom: 32,
