@@ -61,8 +61,8 @@ export function useHadith(id: string, userId: string | undefined) {
       // Snapshot previous value
       const previousValue = queryClient.getQueryData(['bookmark', id, userId])
 
-      // Optimistically update
-      queryClient.setQueryData(['bookmark', id, userId], (old: boolean) => !old)
+      // Optimistically update - handle undefined case
+      queryClient.setQueryData(['bookmark', id, userId], (old: boolean | undefined) => !old)
 
       return { previousValue }
     },
