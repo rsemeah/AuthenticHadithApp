@@ -1,98 +1,184 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React from 'react'
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter()
+  const { isAuthenticated } = useAuth()
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Authentic Hadith</Text>
+        <Text style={styles.subtitle}>
+          Access 36,000+ verified hadiths from 6 major collections
+        </Text>
+      </View>
+
+      <View style={styles.grid}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/collections')}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: '#1B5E43' }]}>
+            <Ionicons name="book" size={32} color="#fff" />
+          </View>
+          <Text style={styles.cardTitle}>Collections</Text>
+          <Text style={styles.cardSubtitle}>Browse hadith collections</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/bookmarks')}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: '#C5A059' }]}>
+            <Ionicons name="bookmark" size={32} color="#fff" />
+          </View>
+          <Text style={styles.cardTitle}>Bookmarks</Text>
+          <Text style={styles.cardSubtitle}>Your saved hadiths</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/modal')}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: '#6366F1' }]}>
+            <Ionicons name="search" size={32} color="#fff" />
+          </View>
+          <Text style={styles.cardTitle}>Search</Text>
+          <Text style={styles.cardSubtitle}>Find specific hadiths</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => router.push('/modal')}
+        >
+          <View style={[styles.iconContainer, { backgroundColor: '#EC4899' }]}>
+            <Ionicons name="person" size={32} color="#fff" />
+          </View>
+          <Text style={styles.cardTitle}>Profile</Text>
+          <Text style={styles.cardSubtitle}>
+            {isAuthenticated ? 'Manage account' : 'Sign in'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Ionicons name="information-circle" size={24} color="#1B5E43" />
+        <View style={styles.infoText}>
+          <Text style={styles.infoTitle}>Getting Started</Text>
+          <Text style={styles.infoDescription}>
+            This mobile app connects to the shared Supabase backend at authentichadith.app. 
+            Configure your environment variables in .env to get started.
+          </Text>
+        </View>
+      </View>
+
+      {!isAuthenticated && (
+        <View style={styles.authPrompt}>
+          <Text style={styles.authText}>Sign in to bookmark hadiths and sync across devices</Text>
+        </View>
+      )}
+    </ScrollView>
+  )
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F6F2',
   },
-  stepContainer: {
-    gap: 8,
+  content: {
+    padding: 16,
+  },
+  header: {
+    marginBottom: 24,
+    paddingTop: 8,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#1B5E43',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    lineHeight: 24,
   },
-});
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
+  },
+  card: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  infoCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1B5E43',
+  },
+  infoText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  infoDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  authPrompt: {
+    backgroundColor: '#1B5E43',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  authText: {
+    fontSize: 14,
+    color: '#fff',
+    textAlign: 'center',
+  },
+})
+
