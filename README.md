@@ -31,13 +31,15 @@ A React Native mobile application for accessing authentic Islamic hadiths, built
 ### Installation
 
 1. Clone the repository:
-```bash
+
+```sh
 git clone https://github.com/rsemeah/AuthenticHadithApp.git
 cd AuthenticHadithApp
 ```
 
 2. Install dependencies:
-```bash
+
+```sh
 cd authentichadithapp
 npm install
 ```
@@ -45,12 +47,14 @@ npm install
 ### Development
 
 Start the development server:
-```bash
+
+```sh
 npm start
 ```
 
 Run on specific platforms:
-```bash
+
+```sh
 npm run ios       # iOS simulator
 npm run android   # Android emulator
 npm run web       # Web browser
@@ -71,7 +75,7 @@ The project includes automated iOS builds via GitHub Actions:
 
 ### Manual Build
 
-```bash
+```sh
 cd authentichadithapp
 eas build --platform ios --profile production
 ```

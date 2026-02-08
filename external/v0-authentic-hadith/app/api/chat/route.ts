@@ -1,5 +1,6 @@
 import { streamText } from "ai"
 import { createGroq } from "@ai-sdk/groq"
+import { requirePremium } from "@/lib/subscription"
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
@@ -26,6 +27,9 @@ You have knowledge about the major hadith collections: Sahih al-Bukhari, Sahih M
 
 export async function POST(req: Request) {
   try {
+    // Premium-only feature - AI chat costs real money
+    await requirePremium()
+
     const { messages } = await req.json()
 
     const result = streamText({
@@ -36,6 +40,17 @@ export async function POST(req: Request) {
 
     return result.toDataStreamResponse()
   } catch (error) {
+    // Handle premium requirement error
+    if (error instanceof Error && error.message === "Premium subscription required") {
+      return new Response(
+        JSON.stringify({
+          error: "This feature requires a Premium subscription.",
+          code: "PREMIUM_REQUIRED",
+        }),
+        { status: 403, headers: { "Content-Type": "application/json" } },
+      )
+    }
+
     console.error("[SilentEngine] Chat API error:", error)
     return new Response(
       JSON.stringify({
