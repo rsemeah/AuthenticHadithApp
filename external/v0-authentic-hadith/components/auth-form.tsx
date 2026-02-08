@@ -1,92 +1,109 @@
-"use client";
+"use client"
 
-import { Input } from "@/components/ui/input";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import { Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react";
-import { useRouter } from "next/navigation";
-import type React from "react";
-import { useState } from "react";
+import type React from "react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { Input } from "@/components/ui/input"
+import { Eye, EyeOff, Loader2, Mail, Lock, User } from "lucide-react"
 
-type AuthMode = "signin" | "signup" | "forgot";
+type AuthMode = "signin" | "signup" | "forgot"
 
 export function AuthForm() {
-  const [mode, setMode] = useState<AuthMode>("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const router = useRouter();
+  const [mode, setMode] = useState<AuthMode>("signin")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const router = useRouter()
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getSupabaseBrowserClient()
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    });
+    })
 
     if (error) {
-      setError(error.message);
-      setLoading(false);
+      setError(error.message)
+      setLoading(false)
     } else {
-      router.push("/home");
-      router.refresh();
+      // Redirect to home - middleware will handle onboarding check
+      router.push("/home")
+      router.refresh()
     }
-  };
+  }
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getSupabaseBrowserClient()
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo:
-          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-          `${window.location.origin}/dashboard`,
+        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
         data: {
           full_name: fullName,
         },
       },
-    });
+    })
 
     if (error) {
-      setError(error.message);
-      setLoading(false);
+      setError(error.message)
+      setLoading(false)
     } else {
-      setMessage("Please check your email to confirm your account.");
-      setLoading(false);
+      setMessage("Please check your email to confirm your account.")
+      setLoading(false)
     }
-  };
+  }
+
+  const handleOAuthSignIn = async (provider: "google" | "apple") => {
+    setLoading(true)
+    setError(null)
+
+    const supabase = getSupabaseBrowserClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo:
+          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+          `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+    }
+  }
 
   const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
-    const supabase = getSupabaseBrowserClient();
+    const supabase = getSupabaseBrowserClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo:
-        process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-        `${window.location.origin}/reset-password`,
-    });
+      redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/reset-password`,
+    })
 
     if (error) {
-      setError(error.message);
+      setError(error.message)
     } else {
-      setMessage("Password reset link sent to your email.");
+      setMessage("Password reset link sent to your email.")
     }
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   return (
     <div className="w-full">
@@ -95,14 +112,12 @@ export function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              setMode("signin");
-              setError(null);
-              setMessage(null);
+              setMode("signin")
+              setError(null)
+              setMessage(null)
             }}
             className={`flex-1 pb-3 text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${
-              mode === "signin"
-                ? "text-[#2C2416]"
-                : "text-muted-foreground hover:text-[#2C2416]"
+              mode === "signin" ? "text-[#2C2416]" : "text-muted-foreground hover:text-[#2C2416]"
             }`}
           >
             Sign In
@@ -110,14 +125,12 @@ export function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              setMode("signup");
-              setError(null);
-              setMessage(null);
+              setMode("signup")
+              setError(null)
+              setMessage(null)
             }}
             className={`flex-1 pb-3 text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${
-              mode === "signup"
-                ? "text-[#2C2416]"
-                : "text-muted-foreground hover:text-[#2C2416]"
+              mode === "signup" ? "text-[#2C2416]" : "text-muted-foreground hover:text-[#2C2416]"
             }`}
           >
             Sign Up
@@ -136,33 +149,20 @@ export function AuthForm() {
       {/* Forgot Password Header */}
       {mode === "forgot" && (
         <div className="text-center mb-6">
-          <h2 className="text-lg font-semibold text-[#2C2416] tracking-wide">
-            Reset Password
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Enter your email to receive a reset link
-          </p>
+          <h2 className="text-lg font-semibold text-[#2C2416] tracking-wide">Reset Password</h2>
+          <p className="text-sm text-muted-foreground mt-1">Enter your email to receive a reset link</p>
         </div>
       )}
 
       {/* Form */}
       <form
-        onSubmit={
-          mode === "signin"
-            ? handleSignIn
-            : mode === "signup"
-              ? handleSignUp
-              : handleForgotPassword
-        }
+        onSubmit={mode === "signin" ? handleSignIn : mode === "signup" ? handleSignUp : handleForgotPassword}
         className="space-y-5"
       >
         {/* Full Name - only for signup */}
         {mode === "signup" && (
           <div className="space-y-2">
-            <label
-              htmlFor="fullName"
-              className="text-sm font-medium text-[#2C2416]"
-            >
+            <label htmlFor="fullName" className="text-sm font-medium text-[#2C2416]">
               Full Name
             </label>
             <div className="relative">
@@ -202,10 +202,7 @@ export function AuthForm() {
         {/* Password - not for forgot */}
         {mode !== "forgot" && (
           <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-[#2C2416]"
-            >
+            <label htmlFor="password" className="text-sm font-medium text-[#2C2416]">
               Password
             </label>
             <div className="relative">
@@ -225,11 +222,7 @@ export function AuthForm() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#2C2416] transition-colors"
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
@@ -241,9 +234,9 @@ export function AuthForm() {
             <button
               type="button"
               onClick={() => {
-                setMode("forgot");
-                setError(null);
-                setMessage(null);
+                setMode("forgot")
+                setError(null)
+                setMessage(null)
               }}
               className="text-sm gold-text hover:opacity-80 transition-opacity font-medium"
             >
@@ -301,7 +294,9 @@ export function AuthForm() {
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            className="h-11 flex items-center justify-center gap-2 rounded-md border border-[#D4CFC7] bg-white hover:bg-[#F8F6F2] transition-colors text-sm font-medium text-[#2C2416]"
+            onClick={() => handleOAuthSignIn("google")}
+            disabled={loading}
+            className="h-11 flex items-center justify-center gap-2 rounded-md border border-[#D4CFC7] bg-white hover:bg-[#F8F6F2] transition-colors text-sm font-medium text-[#2C2416] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -318,14 +313,16 @@ export function AuthForm() {
               />
               <path
                 fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
             Google
           </button>
           <button
             type="button"
-            className="h-11 flex items-center justify-center gap-2 rounded-md bg-black hover:bg-black/90 transition-colors text-sm font-medium text-white"
+            onClick={() => handleOAuthSignIn("apple")}
+            disabled={loading}
+            className="h-11 flex items-center justify-center gap-2 rounded-md bg-black hover:bg-black/90 transition-colors text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
@@ -341,9 +338,9 @@ export function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              setMode("signin");
-              setError(null);
-              setMessage(null);
+              setMode("signin")
+              setError(null)
+              setMessage(null)
             }}
             className="text-sm gold-text hover:opacity-80 transition-opacity font-medium"
           >
@@ -352,5 +349,5 @@ export function AuthForm() {
         </div>
       )}
     </div>
-  );
+  )
 }

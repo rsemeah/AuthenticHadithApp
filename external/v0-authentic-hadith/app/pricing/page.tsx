@@ -1,75 +1,97 @@
-"use client";
+"use client"
 
-import { BottomNavigation } from "@/components/home/bottom-navigation";
-import { PLANS } from "@/lib/stripe/config";
-import {
-    Check,
-    ChevronLeft,
-    Crown,
-    Loader2,
-    Sparkles,
-    Zap,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import React from "react"
 
-export default function PricingPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+import { useState, Suspense } from "react"
+import { useRouter } from "next/navigation"
+import { ChevronLeft, Check, Star, Crown, Zap, Infinity, X } from "lucide-react"
+import { BottomNavigation } from "@/components/home/bottom-navigation"
+import { PRODUCTS } from "@/lib/products"
+import type { Product } from "@/lib/products"
+import dynamic from "next/dynamic"
 
-  const handleSubscribe = async (planId: string, priceId: string) => {
-    if (!priceId) {
-      setError("This plan is not yet available. Please try again later.");
-      return;
-    }
+const Checkout = dynamic(() => import("@/components/checkout"), { ssr: false })
 
-    setLoading(planId);
-    setError(null);
+function PriceDisplay({ product }: { product: Product }) {
+  if (product.interval === "year") {
+    const monthly = (product.priceInCents / 100 / 12).toFixed(2)
+    return (
+      <div className="text-right shrink-0 ml-4">
+        <div className="text-2xl font-bold text-[#1a1f36]">${(product.priceInCents / 100).toFixed(2)}</div>
+        <div className="text-xs text-[#C5A059] font-medium">${monthly}/mo</div>
+        <div className="text-xs text-[#6b7280]">billed yearly</div>
+      </div>
+    )
+  }
+  if (product.interval === "month") {
+    return (
+      <div className="text-right shrink-0 ml-4">
+        <div className="text-2xl font-bold text-[#1a1f36]">${(product.priceInCents / 100).toFixed(2)}</div>
+        <div className="text-xs text-[#6b7280]">per month</div>
+      </div>
+    )
+  }
+  return (
+    <div className="text-right shrink-0 ml-4">
+      <div className="text-2xl font-bold text-[#1a1f36]">${(product.priceInCents / 100).toFixed(2)}</div>
+      <div className="text-xs text-[#6b7280]">one-time</div>
+    </div>
+  )
+}
 
-    try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId, planId }),
-      });
+const planIcons: Record<string, React.ReactNode> = {
+  "monthly-intro": <Zap className="w-5 h-5 text-[#C5A059]" />,
+  "monthly-premium": <Star className="w-5 h-5 text-[#C5A059]" />,
+  "annual-premium": <Crown className="w-5 h-5 text-[#C5A059]" />,
+  "lifetime-access": <Infinity className="w-5 h-5 text-[#C5A059]" />,
+}
 
-      const data = await response.json();
+function PricingContent() {
+  const router = useRouter()
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Redirect to login if not authenticated
-          router.push("/onboarding?redirect=/pricing");
-          return;
-        }
-        throw new Error(data.error || "Failed to start checkout");
-      }
-
-      // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const getPlanIcon = (planId: string) => {
-    switch (planId) {
-      case "lifetime":
-        return <Crown className="w-6 h-6" />;
-      case "annual":
-        return <Sparkles className="w-6 h-6" />;
-      default:
-        return <Zap className="w-6 h-6" />;
-    }
-  };
+  if (selectedProduct) {
+    return (
+      <div className="min-h-screen marble-bg pb-20 md:pb-0">
+        <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
+            <button
+              onClick={() => {
+                setSelectedProduct(null)
+                setCheckoutError(null)
+              }}
+              className="w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+            >
+              <X className="w-5 h-5 text-[#6b7280]" />
+            </button>
+            <h1 className="text-lg font-semibold text-[#1a1f36]">Complete Payment</h1>
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+          {checkoutError ? (
+            <div className="text-center py-12">
+              <p className="text-destructive mb-4">{checkoutError}</p>
+              <button
+                onClick={() => {
+                  setCheckoutError(null)
+                  setSelectedProduct(null)
+                }}
+                className="px-6 py-2 gold-button rounded-lg text-sm"
+              >
+                Back to Plans
+              </button>
+            </div>
+          ) : (
+            <Checkout productId={selectedProduct} />
+          )}
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen marble-bg pb-20 md:pb-0">
-      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <button
@@ -78,172 +100,120 @@ export default function PricingPage() {
           >
             <ChevronLeft className="w-5 h-5 text-[#6b7280]" />
           </button>
-          <div>
-            <h1 className="text-lg font-semibold text-[#1a1f36]">
-              Upgrade to Premium
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Unlock the full Authentic Hadith experience
-            </p>
-          </div>
+          <h1 className="text-lg font-semibold text-[#1a1f36]">Choose Your Plan</h1>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {/* Error message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-            {error}
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#C5A059] to-[#E8C77D] flex items-center justify-center">
+            <Star className="w-8 h-8 text-white" />
           </div>
-        )}
-
-        {/* Premium Features Overview */}
-        <div className="mb-8 p-6 gold-border rounded-xl premium-card">
-          <h2 className="text-lg font-semibold text-[#1a1f36] mb-4 flex items-center gap-2">
-            <Crown className="w-5 h-5 text-[#C5A059]" />
-            Premium Features
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {[
-              "Unlimited AI-powered explanations",
-              "Save unlimited hadiths",
-              "Offline access to collections",
-              "Ad-free experience",
-              "Priority support",
-              "Early access to new features",
-            ].map((feature) => (
-              <div key={feature} className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-[#10b981]" />
-                <span className="text-[#374151]">{feature}</span>
-              </div>
-            ))}
-          </div>
+          <h2 className="text-2xl font-bold text-[#1a1f36] text-balance">Unlock Authentic Hadith Premium</h2>
+          <p className="text-[#6b7280] mt-2 max-w-md mx-auto text-pretty">
+            Get full access to AI explanations, advanced search, learning paths, and more.
+          </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {PLANS.map((plan) => (
+        <div className="space-y-4">
+          {PRODUCTS.map((plan) => (
             <div
               key={plan.id}
-              className={`relative gold-border rounded-xl p-5 premium-card ${
-                plan.popular ? "ring-2 ring-[#C5A059] shadow-lg" : ""
+              className={`relative rounded-xl p-5 transition-all ${
+                plan.highlighted
+                  ? "gold-border premium-card ring-2 ring-[#C5A059]/30"
+                  : "border border-[#e5e7eb] bg-white"
               }`}
             >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#C5A059] text-white text-xs font-medium rounded-full">
-                  Most Popular
+              {plan.badge && (
+                <div
+                  className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-white text-xs font-bold ${
+                    plan.highlighted
+                      ? "bg-gradient-to-r from-[#C5A059] to-[#E8C77D]"
+                      : plan.id === "lifetime-access"
+                        ? "bg-gradient-to-r from-[#1B5E43] to-[#2D7A5B]"
+                        : "bg-[#6b7280]"
+                  }`}
+                >
+                  {plan.badge}
                 </div>
               )}
 
-              {plan.introOnly && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#10b981] text-white text-xs font-medium rounded-full">
-                  New Members
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center shrink-0 mt-0.5">
+                    {planIcons[plan.id]}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#1a1f36]">{plan.name}</h3>
+                    <p className="text-sm text-[#6b7280] mt-0.5 max-w-xs">{plan.description}</p>
+                  </div>
                 </div>
+                <PriceDisplay product={plan} />
+              </div>
+
+              {plan.features && (
+                <ul className="space-y-2 mb-5">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2 text-sm text-[#4a5568]">
+                      <Check className="w-4 h-4 text-[#1B5E43] shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               )}
-
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-10 h-10 rounded-lg gold-icon-bg flex items-center justify-center">
-                  {getPlanIcon(plan.id)}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#1a1f36]">{plan.name}</h3>
-                  {plan.savings && (
-                    <span className="text-xs text-[#10b981] font-medium">
-                      {plan.savings}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <p className="text-sm text-muted-foreground mb-4">
-                {plan.description}
-              </p>
-
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-[#1a1f36]">
-                  ${plan.price}
-                </span>
-                {plan.interval && (
-                  <span className="text-muted-foreground">
-                    /{plan.interval}
-                  </span>
-                )}
-              </div>
-
-              <ul className="space-y-2 mb-6">
-                {plan.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2 text-sm text-[#374151]"
-                  >
-                    <Check className="w-4 h-4 text-[#10b981] mt-0.5 shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
 
               <button
-                onClick={() => handleSubscribe(plan.id, plan.priceId)}
-                disabled={loading !== null}
-                className={`w-full py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-                  plan.popular
-                    ? "bg-[#C5A059] text-white hover:bg-[#B89048]"
-                    : "bg-[#F8F6F2] border border-[#e5e7eb] text-[#1a1f36] hover:border-[#C5A059]"
-                } disabled:opacity-50`}
+                onClick={() => setSelectedProduct(plan.id)}
+                className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+                  plan.highlighted
+                    ? "bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-white hover:opacity-90 shadow-md"
+                    : plan.id === "lifetime-access"
+                      ? "bg-gradient-to-r from-[#1B5E43] to-[#2D7A5B] text-white hover:opacity-90 shadow-md"
+                      : "bg-[#F8F6F2] border border-[#e5e7eb] text-[#1a1f36] hover:border-[#C5A059] hover:text-[#C5A059]"
+                }`}
               >
-                {loading === plan.id ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>{plan.interval ? "Subscribe" : "Buy Now"}</>
-                )}
+                {plan.mode === "payment" ? "Buy Lifetime Access" : "Subscribe Now"}
               </button>
             </div>
           ))}
-        </div>
 
-        {/* FAQ Section */}
-        <div className="mt-12">
-          <h2 className="text-lg font-semibold text-[#1a1f36] mb-4">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-4">
-            <div className="gold-border rounded-xl p-4 premium-card">
-              <h3 className="font-medium text-[#1a1f36] mb-1">
-                Can I cancel anytime?
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Yes, you can cancel your subscription at any time. You'll
-                continue to have access until the end of your billing period.
-              </p>
-            </div>
-            <div className="gold-border rounded-xl p-4 premium-card">
-              <h3 className="font-medium text-[#1a1f36] mb-1">
-                What's the difference between Monthly and Lifetime?
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Monthly is a recurring subscription billed each month. Lifetime
-                is a one-time payment that gives you permanent access to all
-                features, including future updates.
-              </p>
-            </div>
-            <div className="gold-border rounded-xl p-4 premium-card">
-              <h3 className="font-medium text-[#1a1f36] mb-1">
-                Is my payment secure?
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Absolutely. All payments are processed securely through Stripe,
-                a PCI Level 1 certified payment processor.
-              </p>
-            </div>
+          <div className="rounded-xl border border-dashed border-[#e5e7eb] p-5 bg-white/50">
+            <h3 className="text-sm font-semibold text-[#6b7280] uppercase tracking-wider mb-3">
+              Free Tier (Current)
+            </h3>
+            <ul className="space-y-2">
+              {[
+                "Browse all 8 hadith collections",
+                "Basic search",
+                "Save & bookmark hadiths",
+                "AI assistant (limited)",
+              ].map((feature) => (
+                <li key={feature} className="flex items-center gap-2 text-sm text-[#6b7280]">
+                  <Check className="w-4 h-4 text-[#6b7280] shrink-0" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </main>
 
       <BottomNavigation />
     </div>
-  );
+  )
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen marble-bg flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-[#C5A059] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <PricingContent />
+    </Suspense>
+  )
 }

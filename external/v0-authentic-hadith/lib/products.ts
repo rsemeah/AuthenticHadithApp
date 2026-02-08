@@ -1,93 +1,90 @@
-// Product catalog mapping internal IDs to real Stripe product IDs
-// Stripe account: acct_1SxvyK2Nr0wloqqf
-
-export type ProductId = "monthly_intro" | "monthly" | "annual" | "lifetime";
-
 export interface Product {
-  id: ProductId;
-  stripeProductId: string;
-  name: string;
-  description: string;
-  price: number;
-  interval: "month" | "year" | null;
-  mode: "subscription" | "payment";
-  popular?: boolean;
-  introOnly?: boolean;
-  savings?: string;
-  features: string[];
+  id: string
+  stripeProductId: string
+  name: string
+  description: string
+  priceInCents: number
+  mode: "payment" | "subscription"
+  interval?: "month" | "year"
+  features?: string[]
+  highlighted?: boolean
+  badge?: string
 }
 
-export const PRODUCTS: Record<ProductId, Product> = {
-  monthly_intro: {
-    id: "monthly_intro",
+export const PRODUCTS: Product[] = [
+  {
+    id: "monthly-intro",
     stripeProductId: "prod_TwJihTwf0x4hmv",
     name: "Monthly (Intro)",
-    description: "First-time members special",
-    price: 4.99,
-    interval: "month",
+    description: "Introductory monthly access for first-time members. Full access to all learning paths and AI explanations.",
+    priceInCents: 499,
     mode: "subscription",
-    introOnly: true,
+    interval: "month",
+    badge: "Intro Offer",
     features: [
-      "Unlimited hadith access",
+      "Full access to all collections",
       "AI-powered explanations",
-      "Learning paths",
-      "Progress tracking",
+      "All learning paths",
+      "Save & bookmark hadiths",
+      "Basic offline access",
     ],
   },
-  monthly: {
-    id: "monthly",
+  {
+    id: "monthly-premium",
     stripeProductId: "prod_TwJiYHi7QRpGqJ",
     name: "Monthly Premium",
-    description: "Full access, billed monthly",
-    price: 9.99,
-    interval: "month",
+    description: "Unlimited access to authentic hadith collections, AI-powered explanations, learning paths, and progress tracking.",
+    priceInCents: 999,
     mode: "subscription",
+    interval: "month",
     features: [
-      "Unlimited hadith access",
-      "AI-powered explanations",
-      "Learning paths",
+      "Everything in Intro",
+      "Advanced hadith search",
+      "Priority AI assistant",
       "Progress tracking",
-      "Offline access",
+      "Custom reading lists",
     ],
   },
-  annual: {
-    id: "annual",
+  {
+    id: "annual-premium",
     stripeProductId: "prod_TwJiyXNERmzQwW",
     name: "Annual Premium",
-    description: "Best value for committed learners",
-    price: 49.99,
-    interval: "year",
+    description: "Full access to Authentic Hadith for one year. Best value for committed learners.",
+    priceInCents: 4999,
     mode: "subscription",
-    popular: true,
-    savings: "Save 58%",
+    interval: "year",
+    highlighted: true,
+    badge: "Best Value",
     features: [
-      "Everything in Monthly",
-      "Priority support",
+      "Everything in Monthly Premium",
+      "Save 58% vs monthly",
       "Early access to new features",
+      "Extended AI assistant usage",
+      "Priority support",
     ],
   },
-  lifetime: {
-    id: "lifetime",
+  {
+    id: "lifetime-access",
     stripeProductId: "prod_TwJiLLwEm4kwBJ",
     name: "Lifetime Access",
-    description: "One-time payment, forever access",
-    price: 99.99,
-    interval: null,
+    description: "Lifetime access to Authentic Hadith, including all current and future core features.",
+    priceInCents: 9999,
     mode: "payment",
+    badge: "One-Time",
     features: [
-      "Everything included forever",
-      "All future features",
-      "No recurring payments",
+      "Everything in Annual, forever",
+      "All future features included",
+      "No recurring charges",
+      "Lifetime priority support",
+      "Founding member recognition",
     ],
   },
-};
+]
 
-// Get all products as an array (useful for iteration)
-export const PRODUCTS_LIST = Object.values(PRODUCTS);
+export function getSubscriptionProducts() {
+  return PRODUCTS.filter((p) => p.mode === "subscription")
+}
 
-// Get product by Stripe product ID
-export function getProductByStripeId(
-  stripeProductId: string,
-): Product | undefined {
-  return PRODUCTS_LIST.find((p) => p.stripeProductId === stripeProductId);
+export function getOneTimeProducts() {
+  return PRODUCTS.filter((p) => p.mode === "payment")
 }
