@@ -7,17 +7,21 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, Stack } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
 import { HADITH_COLUMNS } from "../../lib/queries";
 import HadithCard, { Hadith } from "../../components/HadithCard";
+import ShareButton from "../../components/ShareButton";
+import ShareSheet from "../../components/ShareSheet";
+import { shareHadith } from "../../lib/share";
 
 export default function HadithDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [hadith, setHadith] = useState<Hadith | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shareVisible, setShareVisible] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -71,12 +75,31 @@ export default function HadithDetailScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      <HadithCard hadith={hadith} showFull />
-    </ScrollView>
+    <>
+      <Stack.Screen
+        options={{
+          title: "Hadith Detail",
+          headerRight: () => (
+            <ShareButton
+              onPress={() => setShareVisible(true)}
+              color="#fff"
+              size={22}
+            />
+          ),
+        }}
+      />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
+        <HadithCard hadith={hadith} showFull />
+      </ScrollView>
+      <ShareSheet
+        visible={shareVisible}
+        onClose={() => setShareVisible(false)}
+        hadith={hadith}
+      />
+    </>
   );
 }
 

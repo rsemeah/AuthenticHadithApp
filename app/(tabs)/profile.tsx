@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import { shareInvite } from "../../lib/share";
 
 export default function ProfileScreen() {
   return (
@@ -26,6 +27,17 @@ export default function ProfileScreen() {
           established collections and include grading information.
         </Text>
       </View>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.inviteBtn,
+          { opacity: pressed ? 0.85 : 1 },
+        ]}
+        onPress={shareInvite}
+      >
+        <Ionicons name="people-outline" size={20} color="#fff" />
+        <Text style={styles.inviteBtnText}>Invite Friends</Text>
+      </Pressable>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>App Info</Text>
@@ -115,5 +127,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: Colors.text,
+  },
+  inviteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.primary,
+    marginHorizontal: 16,
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  inviteBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });

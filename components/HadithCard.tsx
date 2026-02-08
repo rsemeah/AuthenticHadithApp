@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors } from "../lib/colors";
+import ShareButton from "./ShareButton";
+import { shareHadith } from "../lib/share";
 
 export interface Hadith {
   id: string;
@@ -40,15 +42,18 @@ export default function HadithCard({ hadith, showFull = false }: Props) {
   const content = (
     <View style={styles.card}>
       <View style={styles.meta}>
-        <Text style={styles.collection}>{displayName}</Text>
-        {hadith.reference && (
-          <Text style={styles.number}>{hadith.reference}</Text>
-        )}
-        {hadith.grading && (
-          <Text style={[styles.grade, { color: gradeColor(hadith.grading) }]}>
-            {hadith.grading}
-          </Text>
-        )}
+        <View style={styles.metaLeft}>
+          <Text style={styles.collection}>{displayName}</Text>
+          {hadith.reference && (
+            <Text style={styles.number}>{hadith.reference}</Text>
+          )}
+          {hadith.grading && (
+            <Text style={[styles.grade, { color: gradeColor(hadith.grading) }]}>
+              {hadith.grading}
+            </Text>
+          )}
+        </View>
+        <ShareButton onPress={() => shareHadith(hadith)} size={18} />
       </View>
 
       {arabicText.length > 0 && (
@@ -107,9 +112,15 @@ const styles = StyleSheet.create({
   meta: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
+  },
+  metaLeft: {
+    flexDirection: "row",
+    alignItems: "center",
     flexWrap: "wrap",
     gap: 8,
+    flex: 1,
   },
   collection: {
     fontSize: 13,
