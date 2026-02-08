@@ -1,23 +1,83 @@
-# Authentic Hadith App
+# Authentic Hadith
 
-> **Status:** Build verified. Native Expo app wired to live Supabase database (36,246 hadith). Ready for Expo Go testing.
+> **A premium Islamic learning platform** for exploring, studying, and sharing 36,246 verified hadith narrations across 8 major collections — in Arabic and English.
 
-A native mobile app for exploring verified hadith narrations of the Prophet Muhammad (peace be upon him). Search, browse, and study hadith from the major authenticated collections — all in Arabic and English.
+**Native app (this repo)** + **Web app** ([v0-authentic-hadith](https://github.com/rsemeah/v0-authentic-hadith)) + **Shared Supabase backend**
 
 ---
 
-## Related Repositories
+## Live Platforms
 
-| Repo | What it is | Stack | Live URL |
-|------|-----------|-------|----------|
-| [`rsemeah/AuthenticHadithApp`](https://github.com/rsemeah/AuthenticHadithApp) | **This repo.** Native mobile app (iOS/Android/Web) | Expo SDK 54, React Native 0.81, TypeScript | Run via Expo Go |
-| [`rsemeah/v0-authentic-hadith`](https://github.com/rsemeah/v0-authentic-hadith) | Web app + API + admin/seed tools + Expo WebView wrapper | Next.js 16, Tailwind, Radix UI, Groq AI SDK | [v0-authentic-hadith.vercel.app](https://v0-authentic-hadith.vercel.app) |
+| Platform | Repo | Stack | Status |
+|----------|------|-------|--------|
+| **iOS / Android** (Expo Go) | **This repo** | Expo SDK 54, React Native 0.81, TypeScript | Ready to run |
+| **TestFlight / App Store** | **This repo** | EAS Build configured | EAS login required |
+| **Web** | [v0-authentic-hadith](https://github.com/rsemeah/v0-authentic-hadith) | Next.js 16, Tailwind, Radix UI | [v0-authentic-hadith.vercel.app](https://v0-authentic-hadith.vercel.app) |
 
-### How they relate
+Both platforms share the same **Supabase project** and `hadith` table (36,246 rows, 8 collections).
 
-- **`v0-authentic-hadith`** is the original web app built with Next.js. It includes server-side API routes (`/api/chat`, `/api/search`, `/api/seed-*`), a full admin seed pipeline, and a basic `expo-wrapper/` directory that loads the web app inside a WebView.
-- **`AuthenticHadithApp`** (this repo) is the **standalone native app** — no WebView, no Next.js dependency. It renders native React Native screens and queries Supabase directly from the client. This is the production mobile app going forward.
-- Both repos share the same **Supabase project** (`lwklogxdpjnvfxrlcnca`) and the same `hadith` table (36,246 rows).
+---
+
+## Features
+
+### Core Experience (6-Tab Native App)
+
+| Tab | What it does |
+|-----|-------------|
+| **Home** | Random "Hadith of the Moment" with Arabic + English. Pull to refresh. |
+| **Collections** | Browse all 8 collections as tappable cards with hadith counts. |
+| **Search** | Free-text search across Arabic and English. Filter by collection. |
+| **Learn** | Structured learning paths with progress tracking — Foundations, Daily Practice, Character & Conduct, Scholars' Deep Dive. |
+| **Assistant** | TruthSerum v1 — retrieval-first chat that searches Supabase, returns templated responses with source cards. No external LLM. |
+| **Profile** | Auth-aware profile with sign in/out, premium badge, referral code, invite friends, app info. |
+
+### Authentication System
+
+| Screen | Description |
+|--------|-------------|
+| **Login** | Email + password, "Continue as Guest" option |
+| **Signup** | Display name + email + password, verification email flow |
+| **Forgot Password** | Email-based password reset via Supabase Auth |
+
+Guest mode is fully functional — auth is optional but required for progress tracking, referrals, and premium features.
+
+### Learning Paths
+
+| Path | Difficulty | Lessons |
+|------|-----------|---------|
+| Foundations of Faith | Beginner | 12 |
+| Daily Practice | Intermediate | 15 |
+| Character & Conduct | Advanced | 18 |
+| Scholars' Deep Dive | Scholar | 20 |
+
+Each lesson includes teaching text, related hadith from the database, and "Mark as Complete" progress tracking.
+
+### Sharing System
+
+| Component | Description |
+|-----------|-------------|
+| **ShareButton** | Appears on every HadithCard and in the detail screen header |
+| **ShareSheet** | Bottom sheet with hadith preview, "Share Privately" (primary), "Copy Text", "More..." |
+| **Invite Friends** | Profile screen button for app invitations |
+| **Referral QR Code** | Auto-generated `AH-XXXXXX` code with QR, shareable via native Share API |
+
+Shared text includes Arabic text, English translation, source chain, and deep link (`authentichadith://hadith/{id}`).
+
+### Promo Codes & Premium
+
+| Feature | Description |
+|---------|-------------|
+| **Redeem Code** | Enter a promo code to unlock premium days |
+| **My Referral Code** | QR code + share button, tracks redemptions (max 5 per code) |
+| **Premium Model** | `premium_until` timestamp on profile — stackable with multiple codes |
+| **Atomic Redemption** | Server-side `redeem_promo_code()` function prevents double-redemption |
+
+### Deep Linking
+
+| Link | Behavior |
+|------|----------|
+| `authentichadith://hadith/{id}` | Opens hadith detail screen |
+| `authentichadith://redeem?code=XXX` | Opens redeem screen with code pre-filled |
 
 ---
 
@@ -25,28 +85,48 @@ A native mobile app for exploring verified hadith narrations of the Prophet Muha
 
 ```
 AuthenticHadithApp/
-├── app/                          # Expo Router (file-based routing)
-│   ├── _layout.tsx               # Root Stack navigator
-│   ├── (tabs)/                   # Bottom tab bar
-│   │   ├── _layout.tsx           # Tab configuration (5 tabs)
-│   │   ├── index.tsx             # Home — random hadith of the moment
-│   │   ├── collections.tsx       # Collections — browse by collection
-│   │   ├── search.tsx            # Search — text search with filters
-│   │   ├── assistant.tsx         # Assistant — TruthSerum chat UI
-│   │   └── profile.tsx           # Profile — guest mode, app info
-│   └── hadith/
-│       └── [id].tsx              # Hadith detail (full view)
+├── app/                              # Expo Router (file-based routing)
+│   ├── _layout.tsx                   # Root layout with AuthProvider
+│   ├── +not-found.tsx                # 404 fallback for broken deep links
+│   ├── (tabs)/                       # Bottom tab bar (6 tabs)
+│   │   ├── _layout.tsx               # Tab configuration
+│   │   ├── index.tsx                 # Home — random hadith
+│   │   ├── collections.tsx           # Collections browser
+│   │   ├── search.tsx                # Text search with filters
+│   │   ├── learn.tsx                 # Learning paths list
+│   │   ├── assistant.tsx             # TruthSerum chat
+│   │   └── profile.tsx               # Auth-aware profile
+│   ├── auth/                         # Auth screens (modal presentation)
+│   │   ├── login.tsx
+│   │   ├── signup.tsx
+│   │   └── forgot-password.tsx
+│   ├── hadith/[id].tsx               # Hadith detail + share header button
+│   ├── learn/
+│   │   ├── [pathId].tsx              # Lesson list for a path
+│   │   └── lesson/[lessonId].tsx     # Lesson detail + mark complete
+│   └── redeem/
+│       ├── index.tsx                 # Redeem a promo code
+│       └── my-code.tsx               # Personal referral QR code
 ├── components/
-│   └── HadithCard.tsx            # Shared card (Arabic RTL + English + metadata)
+│   ├── HadithCard.tsx                # Shared card (Arabic RTL + English + metadata + share)
+│   ├── ShareButton.tsx               # Reusable share icon (subtle/filled variants)
+│   └── ShareSheet.tsx                # Bottom sheet with preview + share actions
 ├── lib/
-│   ├── supabase.ts               # Supabase client (AsyncStorage auth)
-│   ├── colors.ts                 # Theme constants (green/gold palette)
-│   └── queries.ts                # Shared column select constants
-├── assets/                       # App icons, splash screen
-├── .env.example                  # Environment variable template
-├── app.json                      # Expo config (scheme, splash, plugins)
-├── tsconfig.json                 # TypeScript config
-└── package.json                  # Dependencies and scripts
+│   ├── auth.tsx                      # AuthProvider, useAuth hook, profile management
+│   ├── supabase.ts                   # Supabase client (AsyncStorage)
+│   ├── share.ts                      # Share utilities (format text, native Share API)
+│   ├── colors.ts                     # Theme (green/gold Islamic palette)
+│   └── queries.ts                    # HADITH_COLUMNS constant
+├── supabase/
+│   ├── migrations/
+│   │   └── 20260208000000_full_sharing_system.sql   # All tables + RLS + triggers
+│   └── functions/
+│       └── send-inactive-reminder/index.ts          # 14-day inactivity email (Deno)
+├── assets/                           # Icons, splash screen
+├── eas.json                          # EAS Build profiles (dev/preview/production)
+├── app.json                          # Expo config (scheme, bundle IDs, plugins)
+├── .env.example                      # Environment template
+└── package.json
 ```
 
 ## Tech Stack
@@ -58,40 +138,53 @@ AuthenticHadithApp/
 | Routing | Expo Router | 6 (file-based) |
 | Icons | @expo/vector-icons (Ionicons) | 15 |
 | Database | Supabase (PostgreSQL) | JS client 2.95 |
+| Auth | Supabase Auth | via AuthProvider context |
+| QR Codes | react-native-qrcode-svg | + react-native-svg |
 | Language | TypeScript | strict mode |
-| State | React hooks | useState / useEffect |
-| Web support | react-native-web | 0.21 |
+| Build | EAS Build | dev / preview / production profiles |
 
-## Features
+---
 
-### Screens
+## Database Schema
 
-| Tab | Screen | Data source | Description |
-|-----|--------|------------|-------------|
-| Home | `app/(tabs)/index.tsx` | Supabase (random row) | Shows a random hadith with Arabic + English text, narrator, grade badge. "Show Another" button fetches a new one. |
-| Collections | `app/(tabs)/collections.tsx` | Supabase (`collection_name` grouped) | Displays all collections as tappable cards with hadith counts. Tapping navigates to Search filtered by that collection. |
-| Search | `app/(tabs)/search.tsx` | Supabase (`ilike` on `english_text` / `arabic_text`) | Free-text search with optional collection filter. Results shown as HadithCards. Tap any result to open detail view. |
-| Assistant | `app/(tabs)/assistant.tsx` | Supabase (same search) | TruthSerum v1: retrieval-first chat. Searches DB, returns templated summary + up to 5 source cards. No external LLM. |
-| Profile | `app/(tabs)/profile.tsx` | Static | Guest user info, app version, database stats. Auth planned for v2. |
-| Detail | `app/hadith/[id].tsx` | Supabase (by UUID) | Full hadith view — complete Arabic text, English translation, narrator, chapter, grade. |
+**Supabase project:** `lwklogxdpjnvfxrlcnca`
 
-### TruthSerum Assistant (v1 — Free Mode)
+### `hadith` table (36,246 rows)
 
-The Assistant tab implements a **retrieval-first** pattern:
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `collection_name` | text | e.g. "Sahih al-Bukhari" |
+| `arabic_text` | text | Arabic hadith (rendered RTL) |
+| `english_text` | text | English translation |
+| `grading` | text | e.g. "Sahih" (color-coded green/yellow/red) |
+| `reference` | text | e.g. "Bukhari 1" |
+| `narrator` | text | e.g. "Umar ibn al-Khattab" |
+| `book` | text | Book name within collection |
+| `chapter` | text | Chapter name |
+| `hadith_number` | int | Hadith number |
+| `book_number` | int | Book number |
+| `tsv` | tsvector | Full-text search (available, not yet used) |
 
-1. User sends a message
-2. App searches Supabase using `ilike` on `english_text` and `arabic_text`
-3. If results found: returns *"I found X relevant hadith in [collections]..."* with source cards
-4. If no results: returns the exact refusal string:
-   > "No authenticated hadith found in this library for that query."
-5. Each source card shows collection, reference, grade, preview text, and an "Open" link to the detail screen
+### Auth & Feature Tables (via migration SQL)
 
-**No external LLM is called.** All responses are deterministic and template-based.
+| Table | Purpose |
+|-------|---------|
+| `profiles` | User profiles — display name, email, `premium_until`, `last_seen_at`, `email_opt_in` |
+| `learning_paths` | 4 structured paths (beginner → scholar) |
+| `lessons` | Individual lessons with teaching text |
+| `path_lessons` | Path ↔ lesson join (ordered) |
+| `lesson_hadith` | Lesson ↔ hadith join (ordered) |
+| `user_lesson_progress` | Per-user completion tracking |
+| `promo_codes` | Referral / friends & family / campaign codes |
+| `redemptions` | Code redemption log (prevents duplicates) |
 
-### Collections in Database
+All tables have **Row Level Security (RLS)** enabled. A `handle_new_user()` trigger auto-creates profiles on signup.
 
-| Collection | Approximate count |
-|-----------|------------------|
+### Collections
+
+| Collection | Count |
+|-----------|-------|
 | Sahih al-Bukhari | ~7,000+ |
 | Sahih Muslim | ~7,000+ |
 | Sunan Abu Dawud | ~5,000+ |
@@ -101,123 +194,86 @@ The Assistant tab implements a **retrieval-first** pattern:
 | Muwatta Malik | ~1,800+ |
 | Legacy Hadith | seed data |
 
-**Total: 36,246 hadith** (verified via Supabase API)
-
-## Database Schema
-
-**Supabase project:** `lwklogxdpjnvfxrlcnca`
-**Table:** `hadith`
-
-| Column | Type | Used in app | Notes |
-|--------|------|-------------|-------|
-| `id` | UUID | Yes | Primary key |
-| `collection_name` | text | Yes | e.g. "Sahih al-Bukhari". Primary grouping key. |
-| `arabic_text` | text | Yes | Arabic hadith text (rendered RTL) |
-| `english_text` | text | Yes | English translation |
-| `grading` | text | Yes | e.g. "Sahih". Color-coded: green/yellow/red. Nullable. |
-| `reference` | text | Yes | e.g. "Bukhari 1". Nullable. |
-| `narrator` | text | Yes | e.g. "Umar ibn al-Khattab". Nullable. |
-| `book` | text | Yes | Book name within collection. Mostly null for bulk imports. |
-| `chapter` | text | Yes | Chapter name. Nullable. |
-| `hadith_number` | int | Yes | Nullable. |
-| `book_number` | int | Yes | Nullable. |
-| `collection_slug` | text | No | URL-friendly slug (e.g. "bukhari") |
-| `tsv` | tsvector | No (v2) | Full-text search vector. Exists but not yet used. |
-| `source` | text | No | e.g. "seed" |
-| `created_at` | timestamp | No | Row creation time |
-| `updated_at` | timestamp | No | Last update time |
+---
 
 ## Setup
 
 ### Prerequisites
 
-- **Node.js** 18+ (tested on 22.22.0)
-- **npm** (comes with Node)
-- **Expo Go** app on your phone:
-  - [iOS App Store](https://apps.apple.com/app/expo-go/id982107779)
-  - [Android Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+- **Node.js** 18+
+- **Expo Go** on your phone ([iOS](https://apps.apple.com/app/expo-go/id982107779) / [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
 
-### 1. Clone and install
+### Quick Start
 
 ```bash
 git clone https://github.com/rsemeah/AuthenticHadithApp.git
 cd AuthenticHadithApp
-npm install
-```
-
-### 2. Configure environment
-
-```bash
+npm install --legacy-peer-deps
 cp .env.example .env.local
-```
-
-Edit `.env.local`:
-
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://lwklogxdpjnvfxrlcnca.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
-```
-
-> The anon key is the **public** key from your Supabase project dashboard under Settings > API. Never commit the service role key.
-
-### 3. Run the app
-
-```bash
+# Edit .env.local with your Supabase credentials
 npx expo start
+# Scan QR with Expo Go
 ```
 
-A QR code will appear in the terminal. Scan it:
+### Supabase Setup (for auth + learning paths + promo codes)
 
-- **iOS:** Open your Camera app and point at the QR code
-- **Android:** Open the Expo Go app and tap "Scan QR code"
+1. Run the migration in Supabase SQL Editor:
+   ```
+   supabase/migrations/20260208000000_full_sharing_system.sql
+   ```
+2. Enable Email auth in Authentication → Settings
+3. (Optional) Configure Custom SMTP for branded emails from `AuthenticHadith.App`
 
-#### Alternative run modes
+### TestFlight / App Store
 
 ```bash
-# Web preview (opens in browser)
-npx expo start --web
-
-# Tunnel mode (if LAN doesn't connect — e.g. different WiFi networks)
-npx expo start --tunnel
-
-# Direct platform launch
-npx expo start --android
-npx expo start --ios
+npm install -g eas-cli
+eas login
+eas build --platform ios --profile preview
+eas submit --platform ios
 ```
+
+Bundle identifiers are pre-configured:
+- iOS: `com.redlantern.authentichadith`
+- Android: `com.redlantern.authentichadith`
+
+### Edge Function: 14-Day Inactive Reminder
+
+```bash
+supabase functions deploy send-inactive-reminder
+supabase secrets set RESEND_API_KEY=re_xxxxx FROM_EMAIL=salaam@authentichadith.app
+# Schedule daily at 2pm UTC in Dashboard → Edge Functions → Schedule
+```
+
+---
+
+## Related Repository
+
+| Repo | Description |
+|------|-------------|
+| [v0-authentic-hadith](https://github.com/rsemeah/v0-authentic-hadith) | **Web companion app** — Next.js 16 + Tailwind + Radix UI + Groq AI. Deployed on Vercel. Includes collections browser (slug-based routing), AI chat assistant (Groq SDK), Stripe pricing page, onboarding flow, admin seed tools, and an `expo-wrapper/` directory (WebView-based, Expo 52). Both apps share the same Supabase project. |
+
+### Key differences
+
+| Aspect | This repo (native) | v0-authentic-hadith (web) |
+|--------|-------------------|--------------------------|
+| Rendering | React Native (native views) | Next.js (HTML/CSS) |
+| AI Assistant | TruthSerum v1 (retrieval-only, no LLM) | Groq-powered chat |
+| Auth | Supabase Auth (client-side) | Supabase SSR auth |
+| Routing | Expo Router (file-based) | Next.js App Router |
+| Payments | Not yet | Stripe integration |
+| Deployment | Expo Go / EAS Build | Vercel |
+
+---
 
 ## Scripts
 
 | Command | What it does |
 |---------|-------------|
-| `npm start` | Starts Expo dev server (`expo start`) |
-| `npm run web` | Starts Expo dev server in web mode |
-| `npm run android` | Starts and targets Android device/emulator |
-| `npm run ios` | Starts and targets iOS simulator (macOS only) |
-
-## Not yet implemented
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| User authentication | Planned (v2) | v1 is guest-only by design |
-| Full-text search (`tsv`) | Planned | `tsv` column exists in DB; currently using `ilike` |
-| Push notifications | Planned | — |
-| Offline caching | Planned | All queries hit Supabase live |
-| Custom app icons | Planned | Currently using default Expo placeholder icons |
-| EAS Build config | Planned | No `eas.json` yet |
-| Tests | Not configured | No jest/vitest setup |
-| Linter | Not configured | No eslint/prettier |
-| CI/CD | Not configured | No GitHub Actions |
-
-## Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| "Supabase credentials missing" warning | Ensure `.env.local` exists with both `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` |
-| QR code not scanning / can't connect | Try `npx expo start --tunnel` (installs `@expo/ngrok` on first run) |
-| "No hadith found in the database" | Verify Supabase credentials are correct and the `hadith` table has data |
-| Web build fails | Run `npx expo install react-native-web react-dom` |
-| Collections screen slow to load | Known issue: fetches all 36K rows client-side for counting. Server-side RPC optimization planned. |
-| "Network request failed" on device | Ensure phone and dev machine are on the same WiFi, or use `--tunnel` mode |
+| `npm start` | Start Expo dev server |
+| `npm run web` | Start in web mode |
+| `npm run android` | Target Android |
+| `npm run ios` | Target iOS simulator |
 
 ## License
 
