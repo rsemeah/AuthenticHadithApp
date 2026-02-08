@@ -1,88 +1,92 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { Input } from "@/components/ui/input"
-import { Eye, EyeOff, Loader2, Mail, Lock, User } from "lucide-react"
+import { Input } from "@/components/ui/input";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type React from "react";
+import { useState } from "react";
 
-type AuthMode = "signin" | "signup" | "forgot"
+type AuthMode = "signin" | "signup" | "forgot";
 
 export function AuthForm() {
-  const [mode, setMode] = useState<AuthMode>("signin")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [fullName, setFullName] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const router = useRouter()
+  const [mode, setMode] = useState<AuthMode>("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    const supabase = getSupabaseBrowserClient()
+    const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    })
+    });
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setError(error.message);
+      setLoading(false);
     } else {
-      router.push("/dashboard")
-      router.refresh()
+      router.push("/home");
+      router.refresh();
     }
-  }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    const supabase = getSupabaseBrowserClient()
+    const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
+        emailRedirectTo:
+          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+          `${window.location.origin}/dashboard`,
         data: {
           full_name: fullName,
         },
       },
-    })
+    });
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setError(error.message);
+      setLoading(false);
     } else {
-      setMessage("Please check your email to confirm your account.")
-      setLoading(false)
+      setMessage("Please check your email to confirm your account.");
+      setLoading(false);
     }
-  }
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    const supabase = getSupabaseBrowserClient()
+    const supabase = getSupabaseBrowserClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/reset-password`,
-    })
+      redirectTo:
+        process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+        `${window.location.origin}/reset-password`,
+    });
 
     if (error) {
-      setError(error.message)
+      setError(error.message);
     } else {
-      setMessage("Password reset link sent to your email.")
+      setMessage("Password reset link sent to your email.");
     }
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   return (
     <div className="w-full">
@@ -91,12 +95,14 @@ export function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              setMode("signin")
-              setError(null)
-              setMessage(null)
+              setMode("signin");
+              setError(null);
+              setMessage(null);
             }}
             className={`flex-1 pb-3 text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${
-              mode === "signin" ? "text-[#2C2416]" : "text-muted-foreground hover:text-[#2C2416]"
+              mode === "signin"
+                ? "text-[#2C2416]"
+                : "text-muted-foreground hover:text-[#2C2416]"
             }`}
           >
             Sign In
@@ -104,12 +110,14 @@ export function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              setMode("signup")
-              setError(null)
-              setMessage(null)
+              setMode("signup");
+              setError(null);
+              setMessage(null);
             }}
             className={`flex-1 pb-3 text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${
-              mode === "signup" ? "text-[#2C2416]" : "text-muted-foreground hover:text-[#2C2416]"
+              mode === "signup"
+                ? "text-[#2C2416]"
+                : "text-muted-foreground hover:text-[#2C2416]"
             }`}
           >
             Sign Up
@@ -128,20 +136,33 @@ export function AuthForm() {
       {/* Forgot Password Header */}
       {mode === "forgot" && (
         <div className="text-center mb-6">
-          <h2 className="text-lg font-semibold text-[#2C2416] tracking-wide">Reset Password</h2>
-          <p className="text-sm text-muted-foreground mt-1">Enter your email to receive a reset link</p>
+          <h2 className="text-lg font-semibold text-[#2C2416] tracking-wide">
+            Reset Password
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter your email to receive a reset link
+          </p>
         </div>
       )}
 
       {/* Form */}
       <form
-        onSubmit={mode === "signin" ? handleSignIn : mode === "signup" ? handleSignUp : handleForgotPassword}
+        onSubmit={
+          mode === "signin"
+            ? handleSignIn
+            : mode === "signup"
+              ? handleSignUp
+              : handleForgotPassword
+        }
         className="space-y-5"
       >
         {/* Full Name - only for signup */}
         {mode === "signup" && (
           <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-medium text-[#2C2416]">
+            <label
+              htmlFor="fullName"
+              className="text-sm font-medium text-[#2C2416]"
+            >
               Full Name
             </label>
             <div className="relative">
@@ -181,7 +202,10 @@ export function AuthForm() {
         {/* Password - not for forgot */}
         {mode !== "forgot" && (
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-[#2C2416]">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-[#2C2416]"
+            >
               Password
             </label>
             <div className="relative">
@@ -201,7 +225,11 @@ export function AuthForm() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#2C2416] transition-colors"
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
           </div>
@@ -213,9 +241,9 @@ export function AuthForm() {
             <button
               type="button"
               onClick={() => {
-                setMode("forgot")
-                setError(null)
-                setMessage(null)
+                setMode("forgot");
+                setError(null);
+                setMessage(null);
               }}
               className="text-sm gold-text hover:opacity-80 transition-opacity font-medium"
             >
@@ -313,9 +341,9 @@ export function AuthForm() {
           <button
             type="button"
             onClick={() => {
-              setMode("signin")
-              setError(null)
-              setMessage(null)
+              setMode("signin");
+              setError(null);
+              setMessage(null);
             }}
             className="text-sm gold-text hover:opacity-80 transition-opacity font-medium"
           >
@@ -324,5 +352,5 @@ export function AuthForm() {
         </div>
       )}
     </div>
-  )
+  );
 }
