@@ -1,9 +1,17 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { shareInvite } from "../../lib/share";
+import { useAuth } from "../../lib/auth";
 
 export default function ProfileScreen() {
+  const { user, profile, isPremium, signOut } = useAuth();
+  const router = useRouter();
+
+  const displayName = profile?.display_name || "Guest User";
+  const email = profile?.email || user?.email;
+
   return (
     <ScrollView
       style={styles.container}
@@ -13,11 +21,62 @@ export default function ProfileScreen() {
         <View style={styles.avatar}>
           <Ionicons name="person" size={48} color={Colors.primary} />
         </View>
-        <Text style={styles.guestText}>Guest User</Text>
-        <Text style={styles.subText}>
-          Authentication will be available in a future version.
-        </Text>
+        <Text style={styles.nameText}>{displayName}</Text>
+        {email ? (
+          <Text style={styles.subText}>{email}</Text>
+        ) : (
+          <Text style={styles.subText}>Not signed in</Text>
+        )}
+        {isPremium && (
+          <View style={styles.premiumBadge}>
+            <Ionicons name="star" size={14} color={Colors.accent} />
+            <Text style={styles.premiumText}>Premium</Text>
+          </View>
+        )}
       </View>
+
+      {/* Auth actions */}
+      {!user ? (
+        <View style={styles.authSection}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              { opacity: pressed ? 0.85 : 1 },
+            ]}
+            onPress={() => router.push("/auth/login")}
+          >
+            <Text style={styles.primaryBtnText}>Sign In</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.outlineBtn,
+              { opacity: pressed ? 0.85 : 1 },
+            ]}
+            onPress={() => router.push("/auth/signup")}
+          >
+            <Text style={styles.outlineBtnText}>Create Account</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.menuSection}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push("/redeem/my-code")}
+          >
+            <Ionicons name="qr-code-outline" size={20} color={Colors.primary} />
+            <Text style={styles.menuLabel}>My Referral Code</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+          </Pressable>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push("/redeem")}
+          >
+            <Ionicons name="gift-outline" size={20} color={Colors.primary} />
+            <Text style={styles.menuLabel}>Redeem a Code</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>About</Text>
@@ -53,7 +112,27 @@ export default function ProfileScreen() {
           <Text style={styles.infoLabel}>Languages</Text>
           <Text style={styles.infoValue}>Arabic, English</Text>
         </View>
+        {isPremium && profile?.premium_until && (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Premium Until</Text>
+            <Text style={styles.infoValue}>
+              {new Date(profile.premium_until).toLocaleDateString()}
+            </Text>
+          </View>
+        )}
       </View>
+
+      {user && (
+        <Pressable
+          style={({ pressed }) => [
+            styles.signOutBtn,
+            { opacity: pressed ? 0.85 : 1 },
+          ]}
+          onPress={() => signOut()}
+        >
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
@@ -84,7 +163,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.primary,
   },
-  guestText: {
+  nameText: {
     fontSize: 20,
     fontWeight: "700",
     color: Colors.text,
@@ -93,6 +172,71 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 4,
+  },
+  premiumBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 8,
+    backgroundColor: Colors.accent + "20",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  premiumText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.accent,
+  },
+  authSection: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    gap: 10,
+  },
+  primaryBtn: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  primaryBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  outlineBtn: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  outlineBtnText: {
+    color: Colors.primary,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  menuSection: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text,
+    fontWeight: "500",
   },
   section: {
     marginTop: 20,
@@ -143,5 +287,19 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
+  },
+  signOutBtn: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  signOutText: {
+    color: Colors.error,
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
