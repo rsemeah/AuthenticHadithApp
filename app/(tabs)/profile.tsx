@@ -1,13 +1,28 @@
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { shareInvite } from "../../lib/share";
 import { useAuth } from "../../lib/auth";
+import TalibBadge from "../../components/TalibBadge";
+import { getUserXP, getUserStreak, getUserBadges } from "../../lib/xp";
 
 export default function ProfileScreen() {
   const { user, profile, isPremium, signOut } = useAuth();
   const router = useRouter();
+
+  const [xpData, setXpData] = useState<any>(null);
+  const [streak, setStreak] = useState<any>(null);
+  const [badges, setBadges] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      getUserXP(user.id).then(setXpData);
+      getUserStreak(user.id).then(setStreak);
+      getUserBadges(user.id).then(setBadges);
+    }
+  }, [user]);
 
   const displayName = profile?.display_name || "Guest User";
   const email = profile?.email || user?.email;
@@ -73,6 +88,84 @@ export default function ProfileScreen() {
           >
             <Ionicons name="gift-outline" size={20} color={Colors.primary} />
             <Text style={styles.menuLabel}>Redeem a Code</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+          </Pressable>
+        </View>
+      )}
+
+      {/* Talib Rating */}
+      {user && xpData && (
+        <View style={styles.talibSection}>
+          <Text style={styles.sectionTitle}>Talib Rating</Text>
+          <TalibBadge totalXP={xpData.total_xp} tier={xpData.tier} />
+
+          {/* Stats row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="flame-outline" size={20} color={Colors.accent} />
+              <Text style={styles.statNum}>{streak?.current_streak ?? 0}</Text>
+              <Text style={styles.statLabel}>Day Streak</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Ionicons name="book-outline" size={20} color={Colors.primary} />
+              <Text style={styles.statNum}>{xpData.lessons_completed}</Text>
+              <Text style={styles.statLabel}>Lessons</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Ionicons name="checkmark-done-outline" size={20} color={Colors.primary} />
+              <Text style={styles.statNum}>{xpData.quizzes_taken}</Text>
+              <Text style={styles.statLabel}>Quizzes</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Ionicons name="ribbon-outline" size={20} color={Colors.accent} />
+              <Text style={styles.statNum}>{badges.length}</Text>
+              <Text style={styles.statLabel}>Badges</Text>
+            </View>
+          </View>
+
+          {/* Badge showcase */}
+          {badges.length > 0 && (
+            <View style={styles.badgesSection}>
+              <Text style={styles.badgesTitle}>Earned Badges</Text>
+              <View style={styles.badgesGrid}>
+                {badges.slice(0, 8).map((b) => (
+                  <View key={b.badge_slug} style={styles.badgeItem}>
+                    <Ionicons
+                      name={(b.badge_icon || "ribbon-outline") as any}
+                      size={24}
+                      color={Colors.primary}
+                    />
+                    <Text style={styles.badgeName} numberOfLines={1}>
+                      {b.badge_name}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Notifications */}
+      {user && (
+        <View style={styles.menuSection}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push("/notifications")}
+          >
+            <Ionicons name="notifications-outline" size={20} color={Colors.primary} />
+            <Text style={styles.menuLabel}>Notifications</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
+          </Pressable>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push("/settings/notifications")}
+          >
+            <Ionicons name="settings-outline" size={20} color={Colors.primary} />
+            <Text style={styles.menuLabel}>Notification Settings</Text>
             <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
           </Pressable>
         </View>
@@ -301,5 +394,65 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 15,
     fontWeight: "600",
+  },
+  talibSection: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 16,
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: Colors.border,
+  },
+  statNum: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+  },
+  badgesSection: {
+    marginTop: 16,
+  },
+  badgesTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 10,
+  },
+  badgesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  badgeItem: {
+    alignItems: "center",
+    width: 72,
+    gap: 4,
+  },
+  badgeName: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    textAlign: "center",
   },
 });

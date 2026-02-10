@@ -8,13 +8,14 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, Stack } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../../lib/supabase";
 import { Colors } from "../../../lib/colors";
 import { useAuth } from "../../../lib/auth";
 import HadithCard, { Hadith } from "../../../components/HadithCard";
 import { HADITH_COLUMNS } from "../../../lib/queries";
+import { awardXP, XP_VALUES, recordDailyActivity, checkAndAwardBadges } from "../../../lib/xp";
 
 interface Lesson {
   id: string;
@@ -29,6 +30,7 @@ export default function LessonDetailScreen() {
     lessonId: string;
     title?: string;
   }>();
+  const router = useRouter();
   const { user } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [hadithList, setHadithList] = useState<Hadith[]>([]);
@@ -101,7 +103,13 @@ export default function LessonDetailScreen() {
       { onConflict: "user_id,lesson_id" }
     );
 
-    if (!error) setStatus("completed");
+    if (!error) {
+      setStatus("completed");
+      // Award XP for lesson completion
+      await awardXP(user.id, XP_VALUES.lesson_complete, "lesson_complete");
+      await recordDailyActivity(user.id);
+      await checkAndAwardBadges(user.id);
+    }
     setSaving(false);
   };
 
@@ -183,6 +191,25 @@ export default function LessonDetailScreen() {
             </Pressable>
           )}
         </View>
+
+        {/* Quiz button */}
+        <View style={styles.quizSection}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.quizBtn,
+              { opacity: pressed ? 0.85 : 1 },
+            ]}
+            onPress={() =>
+              router.push(
+                `/quiz/${lessonId}?title=${encodeURIComponent(lesson.title)}`
+              )
+            }
+          >
+            <Ionicons name="help-circle-outline" size={20} color={Colors.primary} />
+            <Text style={styles.quizBtnText}>Take the Quiz</Text>
+            <Text style={styles.quizXP}>+{XP_VALUES.quiz_correct * 5} XP</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </>
   );
@@ -260,5 +287,30 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     color: Colors.textSecondary,
+  },
+  quizSection: {
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  quizBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.surface,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  quizBtnText: {
+    color: Colors.primary,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  quizXP: {
+    fontSize: 13,
+    color: Colors.accent,
+    fontWeight: "700",
   },
 });

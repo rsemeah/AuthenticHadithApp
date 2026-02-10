@@ -47,6 +47,18 @@ export default function RootLayout() {
           name="redeem/my-code"
           options={{ title: "My Referral Code" }}
         />
+        <Stack.Screen
+          name="quiz/[lessonId]"
+          options={{ title: "Quiz" }}
+        />
+        <Stack.Screen
+          name="notifications/index"
+          options={{ title: "Notifications" }}
+        />
+        <Stack.Screen
+          name="settings/notifications"
+          options={{ title: "Notification Settings" }}
+        />
       </Stack>
     </AuthProvider>
   );
