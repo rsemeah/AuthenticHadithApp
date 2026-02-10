@@ -8,13 +8,14 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../lib/supabase";
 import { Colors } from "../../lib/colors";
 import { HADITH_COLUMNS } from "../../lib/queries";
 import HadithCard, { Hadith } from "../../components/HadithCard";
 import { expandQuery, buildTsQuery } from "../../lib/topics";
+import { useAuth } from "../../lib/auth";
 
 export default function SearchScreen() {
   const params = useLocalSearchParams<{
@@ -29,6 +30,8 @@ export default function SearchScreen() {
   const [collectionFilter, setCollectionFilter] = useState<string | null>(
     params.collection ?? null
   );
+  const { isPremium } = useAuth();
+  const router = useRouter();
 
   // Auto-search when arriving from Learn topic chips
   useEffect(() => {
@@ -184,6 +187,18 @@ export default function SearchScreen() {
         <Text style={styles.searchBtnText}>Search</Text>
       </Pressable>
 
+      {!isPremium && (
+        <Pressable
+          style={styles.upgradeBanner}
+          onPress={() => router.push("/(tabs)/profile")}
+        >
+          <Ionicons name="lock-open" size={14} color="#fff" />
+          <Text style={styles.upgradeText}>
+            Upgrade for advanced search with synonym expansion
+          </Text>
+        </Pressable>
+      )}
+
       {loading && (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -281,6 +296,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 15,
+  },
+  upgradeBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.accent,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 8,
+  },
+  upgradeText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+    flex: 1,
   },
   center: {
     flex: 1,

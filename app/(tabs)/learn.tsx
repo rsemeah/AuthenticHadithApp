@@ -38,7 +38,7 @@ const difficultyColor: Record<string, string> = {
 
 export default function LearnScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth();
   const [paths, setPaths] = useState<PathWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -180,6 +180,22 @@ export default function LearnScreen() {
           Structured journeys through authentic hadith
         </Text>
       </View>
+      {!isPremium && (
+        <Pressable
+          style={styles.premiumBanner}
+          onPress={() => router.push("/(tabs)/profile")}
+        >
+          <View>
+            <Text style={styles.premiumBannerTitle}>
+              Upgrade to Premium for unlimited lesson access
+            </Text>
+            <Text style={styles.premiumBannerSub}>
+              Free users: 3 lessons per day
+            </Text>
+          </View>
+        </Pressable>
+      )}
+
       {/* Quick Topic Search */}
       <View style={styles.topicsSection}>
         <Text style={styles.topicsSectionTitle}>Look up a topic</Text>
@@ -385,5 +401,22 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.text,
     marginBottom: 12,
+  },
+  premiumBanner: {
+    backgroundColor: Colors.accent,
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+  },
+  premiumBannerTitle: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  premiumBannerSub: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
   },
 });
