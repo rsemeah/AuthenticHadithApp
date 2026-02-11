@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite'
 import { Hadith } from '../../types/hadith'
+import type { HadithFolder, SavedHadithWithNotes } from '../../types/my-hadith'
 
 const DB_NAME = 'authentic_hadith.db'
 
@@ -104,7 +105,7 @@ export async function clearCache() {
   await database.runAsync('DELETE FROM cached_hadiths')
 }
 
-export async function cacheFolder(folder: any) {
+export async function cacheFolder(folder: HadithFolder) {
   const database = await initDatabase()
   
   await database.runAsync(
@@ -136,7 +137,7 @@ export async function getCachedFolders(userId: string) {
   return results
 }
 
-export async function cacheSavedHadith(savedHadith: any) {
+export async function cacheSavedHadith(savedHadith: SavedHadithWithNotes) {
   const database = await initDatabase()
   
   await database.runAsync(

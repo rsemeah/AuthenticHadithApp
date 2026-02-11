@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { StyleSheet, View, Text, TextInput, ScrollView, Pressable } from 'react-native'
+import { StyleSheet, View, Text, TextInput, ScrollView, Pressable, Alert } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useCreateFolder } from '@/hooks/useMyHadith'
 import { useAuth } from '@/lib/auth/AuthProvider'
@@ -35,6 +35,7 @@ export default function CreateFolderScreen() {
       router.back()
     } catch (error) {
       console.error('Failed to create folder:', error)
+      Alert.alert('Error', 'Failed to create folder. Please try again.')
     }
   }
 

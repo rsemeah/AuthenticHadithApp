@@ -1,3 +1,5 @@
+import type { Hadith } from './hadith'
+
 export interface HadithFolder {
   id: string
   user_id: string
@@ -35,7 +37,7 @@ export interface SavedHadithWithNotes {
   last_edited_at?: string
   version: number
   created_at: string
-  hadith?: any // Will reference existing Hadith type
+  hadith?: Hadith
   folder?: HadithFolder
   comments?: FolderComment[]
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Modal, StyleSheet, View, Text, TextInput, FlatList, Pressable } from 'react-native'
+import { Modal, StyleSheet, View, Text, TextInput, FlatList, Pressable, Alert } from 'react-native'
 import { useFolders, useSaveHadith } from '@/hooks/useMyHadith'
 import { Button } from '@/components/ui/Button'
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
@@ -28,6 +28,7 @@ export function SaveHadithModal({ visible, hadithId, onClose }: Props) {
       setSelectedFolder(undefined)
     } catch (error) {
       console.error('Failed to save hadith:', error)
+      Alert.alert('Error', 'Failed to save hadith. Please try again.')
     }
   }
 

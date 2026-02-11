@@ -106,10 +106,10 @@ export async function getFolderHadiths(folderId: string) {
 }
 
 // Sharing
-export async function generateShareToken(folderId: string) {
+export async function generateShareToken(folderId: string, privacy: 'public' | 'unlisted' = 'unlisted') {
   const { data } = await supabase.rpc('generate_share_token')
   const token = data as string
-  await updateFolder(folderId, { share_token: token, privacy: 'public' })
+  await updateFolder(folderId, { share_token: token, privacy })
   return token
 }
 

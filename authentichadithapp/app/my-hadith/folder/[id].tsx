@@ -1,23 +1,58 @@
-import React from 'react'
-import { StyleSheet, View, Text, FlatList, Pressable, Share } from 'react-native'
+import React, { useState } from 'react'
+import { StyleSheet, View, Text, FlatList, Pressable, Share, Alert } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useFolderHadiths } from '@/hooks/useMyHadith'
+import { useFolderHadiths, useUpdateFolder } from '@/hooks/useMyHadith'
+import { useQuery } from '@tanstack/react-query'
+import { generateShareToken } from '@/lib/api/my-hadith'
+import { supabase } from '@/lib/supabase/client'
 import { HadithCard } from '@/components/hadith/HadithCard'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors'
+import type { HadithFolder } from '@/types/my-hadith'
 
 export default function FolderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { data: hadiths, isLoading } = useFolderHadiths(id)
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false)
+
+  // Fetch folder details to get share token
+  const { data: folder } = useQuery({
+    queryKey: ['folder', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('hadith_folders')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error) throw error
+      return data as HadithFolder
+    },
+    enabled: !!id
+  })
 
   const handleShare = async () => {
-    // TODO: Generate share link
-    await Share.share({
-      message: `Check out my hadith collection on Authentic Hadith App`,
-      url: `https://authentichadith.app/shared/${id}`
-    })
+    try {
+      setIsGeneratingToken(true)
+      let shareToken = folder?.share_token
+      
+      // Generate token if it doesn't exist
+      if (!shareToken) {
+        shareToken = await generateShareToken(id, 'unlisted')
+      }
+      
+      await Share.share({
+        message: `Check out my hadith collection on Authentic Hadith App`,
+        url: `https://authentichadith.app/shared/${shareToken}`
+      })
+    } catch (error) {
+      console.error('Failed to share folder:', error)
+      Alert.alert('Error', 'Failed to share folder. Please try again.')
+    } finally {
+      setIsGeneratingToken(false)
+    }
   }
 
   if (isLoading) {
@@ -36,6 +71,7 @@ export default function FolderDetailScreen() {
           title="Share"
           onPress={handleShare}
           variant="outline"
+          disabled={isGeneratingToken}
         />
       </View>
 
