@@ -1,98 +1,123 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React, { useState } from 'react';
+import { StyleSheet, View, ScrollView, Text, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase/client';
+import { HadithCard } from '@/components/hadith/HadithCard';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Button } from '@/components/ui/Button';
+import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
+import { Hadith } from '@/types/hadith';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const router = useRouter();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const { data: hadith, isLoading, refetch } = useQuery({
+    queryKey: ['random-hadith', refreshKey],
+    queryFn: async () => {
+      // Get a random hadith with proper range calculation
+      const offset = Math.floor(Math.random() * 1000)
+      const { data, error } = await supabase
+        .from('hadiths')
+        .select('*')
+        .limit(1)
+        .order('id', { ascending: false })
+        .range(offset, offset)
+        .single();
+
+      if (error) throw error;
+      return data as Hadith;
+    },
+  });
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+      }
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>🌙 Hadith of the Moment</Text>
+        <Text style={styles.subtitle}>
+          Discover authentic sayings of Prophet Muhammad ﷺ
+        </Text>
+      </View>
+
+      {hadith && (
+        <HadithCard 
+          hadith={hadith} 
+          onPress={() => router.push(`/hadith/${hadith.id}`)}
+        />
+      )}
+
+      <View style={styles.actions}>
+        <Button
+          title="Get Another Hadith"
+          onPress={handleRefresh}
+          variant="primary"
+        />
+        <Button
+          title="Browse Collections"
+          onPress={() => router.push('/(tabs)/collections')}
+          variant="outline"
+        />
+      </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>
+          Access 36,246 authentic hadiths from 8 major collections
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  content: {
+    padding: SPACING.md,
+  },
+  header: {
+    marginBottom: SPACING.lg,
+    paddingTop: SPACING.xl,
+  },
+  title: {
+    fontSize: FONT_SIZES.xxxl,
+    fontWeight: '700',
+    color: COLORS.bronzeText,
+    marginBottom: SPACING.sm,
+  },
+  subtitle: {
+    fontSize: FONT_SIZES.base,
+    color: COLORS.mutedText,
+    lineHeight: 22,
+  },
+  actions: {
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+  },
+  footer: {
+    marginTop: SPACING.xl,
+    padding: SPACING.md,
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  footerText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.mutedText,
+    textAlign: 'center',
   },
 });
