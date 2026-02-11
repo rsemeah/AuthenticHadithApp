@@ -36,6 +36,7 @@ export default function RootLayout() {
               <Stack.Screen name="collection" options={{ headerShown: false }} />
               <Stack.Screen name="learn" options={{ headerShown: false }} />
               <Stack.Screen name="redeem" options={{ headerShown: false }} />
+              <Stack.Screen name="my-hadith" options={{ headerShown: false }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
               <Stack.Screen name="+not-found" />
             </Stack>

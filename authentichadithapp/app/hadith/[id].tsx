@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, ScrollView, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -7,12 +7,14 @@ import { HadithCard } from '@/components/hadith/HadithCard';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { shareHadith } from '@/components/share/ShareSheet';
+import { SaveHadithModal } from '@/components/my-hadith/SaveHadithModal';
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { Hadith } from '@/types/hadith';
 
 export default function HadithDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const { data: hadith, isLoading } = useQuery({
     queryKey: ['hadith', id],
@@ -53,6 +55,11 @@ export default function HadithDetailScreen() {
 
         <View style={styles.actions}>
           <Button
+            title="💾 Save"
+            onPress={() => setShowSaveModal(true)}
+            variant="outline"
+          />
+          <Button
             title="Share"
             onPress={() => shareHadith(hadith)}
             variant="primary"
@@ -64,6 +71,12 @@ export default function HadithDetailScreen() {
           />
         </View>
       </View>
+
+      <SaveHadithModal
+        visible={showSaveModal}
+        hadithId={id}
+        onClose={() => setShowSaveModal(false)}
+      />
     </ScrollView>
   );
 }
