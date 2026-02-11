@@ -63,6 +63,42 @@ export default function RootLayout() {
           name="settings/notifications"
           options={{ title: "Notification Settings" }}
         />
+        <Stack.Screen
+          name="stories/index"
+          options={{ title: "Stories" }}
+        />
+        <Stack.Screen
+          name="stories/[slug]"
+          options={{ title: "Story" }}
+        />
+        <Stack.Screen
+          name="sunnah/index"
+          options={{ title: "Sunnah" }}
+        />
+        <Stack.Screen
+          name="topics/index"
+          options={{ title: "Topics" }}
+        />
+        <Stack.Screen
+          name="saved/index"
+          options={{ title: "Saved" }}
+        />
+        <Stack.Screen
+          name="reflections/index"
+          options={{ title: "Reflections" }}
+        />
+        <Stack.Screen
+          name="today/index"
+          options={{ title: "Today" }}
+        />
+        <Stack.Screen
+          name="pricing/index"
+          options={{ title: "Pricing" }}
+        />
+        <Stack.Screen
+          name="onboarding/index"
+          options={{ headerShown: false }}
+        />
       </Stack>
     </AuthProvider>
   );
