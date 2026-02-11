@@ -107,10 +107,22 @@ export async function getFolderHadiths(folderId: string) {
 
 // Sharing
 export async function generateShareToken(folderId: string, privacy: 'public' | 'unlisted' = 'unlisted') {
-  const { data } = await supabase.rpc('generate_share_token')
+  const { data, error: rpcError } = await supabase.rpc('generate_share_token')
+  
+  if (rpcError) {
+    console.error('Failed to generate share token:', rpcError)
+    throw rpcError
+  }
+  
   const token = data as string
-  await updateFolder(folderId, { share_token: token, privacy })
-  return token
+  
+  try {
+    await updateFolder(folderId, { share_token: token, privacy })
+    return token
+  } catch (error) {
+    console.error('Failed to update folder with share token:', error)
+    throw error
+  }
 }
 
 export async function getFolderByShareToken(token: string) {

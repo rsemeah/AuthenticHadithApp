@@ -80,13 +80,21 @@ export default function FolderDetailScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => router.push(`/hadith/${item.hadith_id}`)}
+            onPress={() => item.hadith && router.push(`/hadith/${item.hadith_id}`)}
           >
-            <HadithCard hadith={item.hadith} />
-            {item.notes && (
+            {item.hadith ? (
+              <>
+                <HadithCard hadith={item.hadith} />
+                {item.notes && (
+                  <View style={styles.notes}>
+                    <Text style={styles.notesLabel}>My Notes:</Text>
+                    <Text style={styles.notesText}>{item.notes}</Text>
+                  </View>
+                )}
+              </>
+            ) : (
               <View style={styles.notes}>
-                <Text style={styles.notesLabel}>My Notes:</Text>
-                <Text style={styles.notesText}>{item.notes}</Text>
+                <Text style={styles.notesText}>Hadith not found</Text>
               </View>
             )}
           </Pressable>
