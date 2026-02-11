@@ -1,12 +1,13 @@
 import React from 'react'
-import { Pressable, Text, StyleSheet, ActivityIndicator, PressableProps } from 'react-native'
+import { Pressable, Text, StyleSheet, ActivityIndicator, PressableProps, ViewStyle } from 'react-native'
 import { COLORS, BORDER_RADIUS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
 
-interface ButtonProps extends PressableProps {
+interface ButtonProps extends Omit<PressableProps, 'style'> {
   title: string
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
   size?: 'small' | 'medium' | 'large'
   isLoading?: boolean
+  style?: ViewStyle
 }
 
 export function Button({ 
@@ -18,25 +19,18 @@ export function Button({
   style,
   ...props 
 }: ButtonProps) {
-  const buttonStyle = [
-    styles.base,
-    styles[variant],
-    styles[`${size}Size`],
-    (disabled || isLoading) && styles.disabled,
-    style,
-  ]
-
-  const textStyle = [
-    styles.text,
-    styles[`${variant}Text`],
-    styles[`${size}Text`],
-  ]
+  const sizeKey = `${size}Size` as 'smallSize' | 'mediumSize' | 'largeSize'
+  const variantTextKey = `${variant}Text` as 'primaryText' | 'secondaryText' | 'outlineText' | 'ghostText'
+  const sizeTextKey = `${size}Text` as 'smallText' | 'mediumText' | 'largeText'
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        ...buttonStyle,
-        pressed && !disabled && !isLoading && styles.pressed,
+      style={[
+        styles.base,
+        styles[variant],
+        styles[sizeKey],
+        (disabled || isLoading) && styles.disabled,
+        style,
       ]}
       disabled={disabled || isLoading}
       {...props}
@@ -44,7 +38,13 @@ export function Button({
       {isLoading ? (
         <ActivityIndicator color={variant === 'primary' ? COLORS.white : COLORS.emeraldMid} />
       ) : (
-        <Text style={textStyle}>{title}</Text>
+        <Text style={[
+          styles.text,
+          styles[variantTextKey],
+          styles[sizeTextKey],
+        ]}>
+          {title}
+        </Text>
       )}
     </Pressable>
   )
