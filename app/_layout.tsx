@@ -40,6 +40,10 @@ export default function RootLayout() {
           options={{ title: "Lesson" }}
         />
         <Stack.Screen
+          name="collection/[name]"
+          options={{ title: "Collection" }}
+        />
+        <Stack.Screen
           name="redeem/index"
           options={{ title: "Redeem Code" }}
         />

@@ -57,7 +57,7 @@ export default function CollectionsScreen() {
   };
 
   const handlePress = (collectionName: string) => {
-    router.push(`/search?collection=${encodeURIComponent(collectionName)}`);
+    router.push(`/collection/${encodeURIComponent(collectionName)}`);
   };
 
   if (loading) {
