@@ -16,13 +16,14 @@ export default function HomeScreen() {
   const { data: hadith, isLoading, refetch } = useQuery({
     queryKey: ['random-hadith', refreshKey],
     queryFn: async () => {
-      // Get a random hadith
+      // Get a random hadith with proper range calculation
+      const offset = Math.floor(Math.random() * 1000)
       const { data, error } = await supabase
         .from('hadiths')
         .select('*')
         .limit(1)
         .order('id', { ascending: false })
-        .range(Math.floor(Math.random() * 1000), Math.floor(Math.random() * 1000) + 1)
+        .range(offset, offset)
         .single();
 
       if (error) throw error;

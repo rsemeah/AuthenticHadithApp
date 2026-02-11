@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite'
+import { Hadith } from '../../types/hadith'
 
 const DB_NAME = 'authentic_hadith.db'
 
@@ -30,7 +31,7 @@ export async function initDatabase() {
   return db
 }
 
-export async function cacheHadith(hadith: any) {
+export async function cacheHadith(hadith: Hadith) {
   const database = await initDatabase()
   
   await database.runAsync(
@@ -44,9 +45,9 @@ export async function cacheHadith(hadith: any) {
       hadith.english_text,
       hadith.grade,
       hadith.collection_slug,
-      hadith.narrator,
+      hadith.narrator || '',
       Date.now(),
-      hadith.popularity_score || 0,
+      0,
     ]
   )
 }

@@ -20,16 +20,31 @@ export default function SearchScreen() {
     queryFn: async () => {
       if (!debouncedQuery) return [];
 
-      const expandedTerms = expandSearchQuery(debouncedQuery);
-      const searchPattern = expandedTerms.join(' | ');
-
+      // Sanitize the search query to prevent SQL injection
+      const sanitizedQuery = debouncedQuery.replace(/[%_]/g, '\\$&').trim()
+      
+      // Use Supabase's textSearch for full-text search (safer than ILIKE)
       const { data, error } = await supabase
         .from('hadiths')
         .select('*')
-        .or(`english_text.ilike.%${debouncedQuery}%,arabic_text.ilike.%${debouncedQuery}%`)
+        .textSearch('english_text', sanitizedQuery, {
+          type: 'websearch',
+          config: 'english'
+        })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        // Fallback to ILIKE search if textSearch fails
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('hadiths')
+          .select('*')
+          .ilike('english_text', `%${sanitizedQuery}%`)
+          .limit(50);
+          
+        if (fallbackError) throw fallbackError;
+        return fallbackData as Hadith[];
+      }
+      
       return data as Hadith[];
     },
     enabled: debouncedQuery.length > 2,
