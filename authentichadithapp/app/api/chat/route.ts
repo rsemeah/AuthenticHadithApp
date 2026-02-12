@@ -1,14 +1,28 @@
 import { generateText } from "ai"
 import { createGroq } from "@ai-sdk/groq"
 
+if (!process.env.GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY is not configured')
+}
+
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
 export async function POST(request: Request) {
-  const { messages } = await request.json()
-  
-  const systemPrompt = `You are a knowledgeable Islamic scholar assistant specializing in authentic hadith. 
+  try {
+    const body = await request.json()
+    const { messages } = body
+    
+    // Validate input
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return Response.json(
+        { error: 'Invalid request: messages must be a non-empty array' },
+        { status: 400 }
+      )
+    }
+    
+    const systemPrompt = `You are a knowledgeable Islamic scholar assistant specializing in authentic hadith. 
   
 Your role:
 - Answer questions about Islamic teachings with references to authentic hadith
@@ -22,15 +36,25 @@ Response format:
 - Use bullet points for lists
 - Always cite sources when mentioning specific hadith`
 
-  const { text } = await generateText({
-    model: groq("llama-3.3-70b-versatile"),
-    messages: [
-      { role: 'system', content: systemPrompt },
-      ...messages
-    ],
-    maxTokens: 1024,
-    temperature: 0.7,
-  })
+    const { text } = await generateText({
+      model: groq("llama-3.3-70b-versatile"),
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages
+      ],
+      maxTokens: 1024,
+      temperature: 0.7,
+    })
 
-  return Response.json({ response: text })
+    return Response.json({ response: text })
+  } catch (error) {
+    console.error('Error in chat API:', error)
+    return Response.json(
+      { 
+        error: 'Failed to generate response',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
+  }
 }

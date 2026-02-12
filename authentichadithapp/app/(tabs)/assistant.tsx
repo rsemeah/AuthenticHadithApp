@@ -5,6 +5,13 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { ChatMessage, sendChatMessage } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
 
+// Simple unique ID generator
+let messageCounter = 0;
+const generateMessageId = () => {
+  messageCounter += 1;
+  return `msg_${Date.now()}_${messageCounter}`;
+};
+
 export default function AssistantScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -23,7 +30,7 @@ export default function AssistantScreen() {
     if (!input.trim() || isLoading) return;
     
     const userMessage: ChatMessage = {
-      id: `msg_${Date.now()}`,
+      id: generateMessageId(),
       role: 'user',
       content: input.trim(),
       timestamp: new Date().toISOString()
@@ -38,7 +45,7 @@ export default function AssistantScreen() {
       const response = await sendChatMessage([...messages, userMessage]);
       
       const aiMessage: ChatMessage = {
-        id: `msg_${Date.now()}_ai`,
+        id: generateMessageId(),
         role: 'assistant',
         content: response,
         timestamp: new Date().toISOString()
@@ -46,7 +53,8 @@ export default function AssistantScreen() {
       
       setMessages(prev => [...prev, aiMessage]);
     } catch (err) {
-      setError('Failed to get response. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get response. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +133,7 @@ export default function AssistantScreen() {
           {/* Loading Indicator */}
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#50C878" />
+              <ActivityIndicator size="small" color={COLORS.chatAiBubble} />
               <Text style={styles.loadingText}>Thinking...</Text>
             </View>
           )}
@@ -216,11 +224,11 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   userBubble: {
-    backgroundColor: '#D4A574',
+    backgroundColor: COLORS.chatUserBubble,
     alignSelf: 'flex-end',
   },
   aiBubble: {
-    backgroundColor: '#50C878',
+    backgroundColor: COLORS.chatAiBubble,
     alignSelf: 'flex-start',
   },
   messageHeader: {
@@ -305,7 +313,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#50C878',
+    backgroundColor: COLORS.chatAiBubble,
     alignItems: 'center',
     justifyContent: 'center',
   },

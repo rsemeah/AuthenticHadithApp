@@ -18,7 +18,9 @@ export async function sendChatMessage(messages: ChatMessage[]): Promise<string> 
   })
 
   if (!response.ok) {
-    throw new Error('Failed to get AI response')
+    const errorData = await response.json().catch(() => ({}))
+    const errorMessage = errorData.error || `Failed to get AI response: ${response.status} ${response.statusText}`
+    throw new Error(errorMessage)
   }
 
   const data = await response.json()

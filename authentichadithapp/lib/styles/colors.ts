@@ -33,6 +33,10 @@ export const LIGHT_COLORS = {
   warning: '#c5a059',
   error: '#b91c1c',
   info: '#2d7a5b',
+  
+  // Chat colors
+  chatUserBubble: '#D4A574',
+  chatAiBubble: '#50C878',
 } as const
 
 export const DARK_COLORS = {
@@ -70,6 +74,10 @@ export const DARK_COLORS = {
   warning: '#d4b76e',
   error: '#ef4444',
   info: '#4caf84',
+  
+  // Chat colors
+  chatUserBubble: '#D4A574',
+  chatAiBubble: '#50C878',
 } as const
 
 // Default to light colors for backward compatibility
