@@ -2,7 +2,7 @@ import { generateText } from "ai"
 import { createGroq } from "@ai-sdk/groq"
 
 if (!process.env.GROQ_API_KEY) {
-  throw new Error('GROQ_API_KEY is not configured')
+  throw new Error('GROQ_API_KEY environment variable is not configured. Please add it to your .env file.')
 }
 
 const groq = createGroq({

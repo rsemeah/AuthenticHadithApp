@@ -5,11 +5,11 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors'
 import { ChatMessage, sendChatMessage } from '@/lib/api/groq';
 import { Ionicons } from '@expo/vector-icons';
 
-// Simple unique ID generator
-let messageCounter = 0;
+const MAX_INPUT_LENGTH = 500;
+
+// Simple unique ID generator with random component to avoid collisions
 const generateMessageId = () => {
-  messageCounter += 1;
-  return `msg_${Date.now()}_${messageCounter}`;
+  return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 export default function AssistantScreen() {
@@ -148,7 +148,7 @@ export default function AssistantScreen() {
             value={input}
             onChangeText={setInput}
             multiline
-            maxLength={500}
+            maxLength={MAX_INPUT_LENGTH}
             editable={!isLoading}
           />
           <TouchableOpacity
