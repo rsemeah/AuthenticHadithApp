@@ -1,4 +1,4 @@
-export const COLORS = {
+export const LIGHT_COLORS = {
   // Islamic emerald green shades
   emeraldShadow: '#0a2a1f',
   emeraldMid: '#1b5e43',
@@ -34,6 +34,55 @@ export const COLORS = {
   error: '#b91c1c',
   info: '#2d7a5b',
 } as const
+
+export const DARK_COLORS = {
+  // Islamic emerald green shades (slightly brighter for dark mode)
+  emeraldShadow: '#2d7a5b',
+  emeraldMid: '#3a9270',
+  emeraldHighlight: '#4caf84',
+  
+  // Gold accents (slightly brighter for dark mode)
+  goldShadow: '#c5a059',
+  goldMid: '#d4b76e',
+  goldHighlight: '#e8c77d',
+  
+  // Dark marble base
+  marbleBase: '#1a1a1a',
+  
+  // Text colors for dark mode
+  bronzeText: '#e8e6e3',
+  mutedText: '#a39d94',
+  
+  // Hadith grades (adjusted for dark mode)
+  sahih: '#3a9270',
+  hasan: '#d4b76e',
+  daif: '#ef4444',
+  
+  // UI colors for dark mode
+  background: '#121212',
+  card: '#1e1e1e',
+  border: '#2d2d2d',
+  white: '#ffffff',
+  black: '#000000',
+  
+  // Status colors (adjusted for dark mode)
+  success: '#3a9270',
+  warning: '#d4b76e',
+  error: '#ef4444',
+  info: '#4caf84',
+} as const
+
+// Default to light colors for backward compatibility
+export const COLORS = LIGHT_COLORS
+
+/**
+ * Get colors based on theme mode
+ * @param isDark - Whether dark mode is active
+ * @returns Color palette for the current theme
+ */
+export function getColors(isDark: boolean) {
+  return isDark ? DARK_COLORS : LIGHT_COLORS
+}
 
 export const SPACING = {
   xs: 4,
