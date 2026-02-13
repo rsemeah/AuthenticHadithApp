@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { PremiumGate } from '@/components/premium/PremiumGate';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/lib/styles/colors';
-import { ChatMessage, sendChatMessage } from '@/lib/api/groq';
+import { ChatMessage, sendChatMessage, QuotaExceededError } from '@/lib/api/groq';
+import { useAuth } from '@/lib/auth/AuthProvider';
 import { Ionicons } from '@expo/vector-icons';
 
 const MAX_INPUT_LENGTH = 500;
@@ -13,10 +14,12 @@ const generateMessageId = () => {
 };
 
 export default function AssistantScreen() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Auto-scroll to bottom when messages change
@@ -42,19 +45,24 @@ export default function AssistantScreen() {
     setError(null);
     
     try {
-      const response = await sendChatMessage([...messages, userMessage]);
-      
+      const response = await sendChatMessage([...messages, userMessage], user?.id);
+
       const aiMessage: ChatMessage = {
         id: generateMessageId(),
         role: 'assistant',
         content: response,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, aiMessage]);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to get response. Please try again.';
-      setError(errorMessage);
+      if (err instanceof QuotaExceededError) {
+        setQuotaExceeded(true);
+        setError(err.message);
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to get response. Please try again.';
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: data.user.id,
         email: email,
         full_name: fullName,
-        is_premium: false,
+        subscription_tier: 'free',
       })
     }
   }

@@ -4,16 +4,29 @@ export async function checkPremiumFeature(userId: string | undefined): Promise<b
   if (!userId) return false
 
   try {
-    const { data, error } = await supabase
+    // Try with user_id first (web-created profiles)
+    let { data, error } = await supabase
       .from('profiles')
-      .select('is_premium, subscription_status')
-      .eq('id', userId)
+      .select('subscription_tier, subscription_status')
+      .eq('user_id', userId)
       .single()
 
-    if (error) return false
+    // Fallback to id (mobile-created profiles)
+    if (error || !data) {
+      const fallback = await supabase
+        .from('profiles')
+        .select('subscription_tier, subscription_status')
+        .eq('id', userId)
+        .single()
+      data = fallback.data
+    }
 
-    return data.is_premium === true && 
-           (data.subscription_status === 'active' || data.subscription_status === null)
+    if (!data) return false
+
+    const tier = data.subscription_tier || 'free'
+    const status = data.subscription_status
+
+    return tier !== 'free' && (status === 'active' || status === 'trialing' || status === null)
   } catch {
     return false
   }

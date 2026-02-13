@@ -2,36 +2,60 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase/client'
 import { useAuth } from '../lib/auth/AuthProvider'
 
+export type SubscriptionTier = 'free' | 'premium' | 'lifetime'
+
 export function usePremiumStatus() {
   const { user } = useAuth()
   const [isPremium, setIsPremium] = useState(false)
+  const [tier, setTier] = useState<SubscriptionTier>('free')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (!user) {
       setIsPremium(false)
+      setTier('free')
       setIsLoading(false)
       return
     }
 
     const checkPremiumStatus = async () => {
       try {
-        const { data, error } = await supabase
+        // Try with user_id first (web-created profiles)
+        let { data, error } = await supabase
           .from('profiles')
-          .select('is_premium, subscription_status')
-          .eq('id', user.id)
+          .select('subscription_tier, subscription_status')
+          .eq('user_id', user.id)
           .single()
 
-        if (error) throw error
+        // Fallback to id (mobile-created profiles)
+        if (error || !data) {
+          const fallback = await supabase
+            .from('profiles')
+            .select('subscription_tier, subscription_status')
+            .eq('id', user.id)
+            .single()
+          data = fallback.data
+        }
 
-        const isActive = 
-          data.is_premium === true && 
-          (data.subscription_status === 'active' || data.subscription_status === null)
+        if (!data) {
+          setIsPremium(false)
+          setTier('free')
+          return
+        }
+
+        const userTier = (data.subscription_tier as SubscriptionTier) || 'free'
+        const status = data.subscription_status
+
+        const isActive =
+          userTier !== 'free' &&
+          (status === 'active' || status === 'trialing' || status === null)
 
         setIsPremium(isActive)
+        setTier(userTier)
       } catch (error) {
         console.error('Error checking premium status:', error)
         setIsPremium(false)
+        setTier('free')
       } finally {
         setIsLoading(false)
       }
@@ -40,5 +64,5 @@ export function usePremiumStatus() {
     checkPremiumStatus()
   }, [user])
 
-  return { isPremium, isLoading }
+  return { isPremium, tier, isLoading }
 }

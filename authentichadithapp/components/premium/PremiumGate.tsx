@@ -1,10 +1,12 @@
 import React from 'react'
-import { View, Text, StyleSheet, Modal, Pressable } from 'react-native'
+import { View, Text, StyleSheet, Modal, Pressable, Linking } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { COLORS, SPACING, FONT_SIZES } from '../../lib/styles/colors'
 import { usePremiumStatus } from '../../hooks/usePremiumStatus'
+
+const WEB_PRICING_URL = 'https://v0-authentic-hadith.vercel.app/pricing'
 
 interface PremiumGateProps {
   feature: string
@@ -56,6 +58,14 @@ export function PremiumGate({ feature, description, children }: PremiumGateProps
               <Text style={styles.featureItem}>✓ No Ads</Text>
             </View>
             <View style={styles.buttonContainer}>
+              <Button
+                title="View Plans"
+                onPress={() => {
+                  setShowModal(false)
+                  Linking.openURL(WEB_PRICING_URL)
+                }}
+                style={styles.button}
+              />
               <Button
                 title="Redeem Code"
                 variant="outline"
