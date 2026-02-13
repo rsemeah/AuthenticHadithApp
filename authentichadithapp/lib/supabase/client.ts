@@ -7,6 +7,11 @@ import Constants from 'expo-constants'
 const SUPABASE_URL = Constants.expoConfig?.extra?.supabaseUrl || 'https://nqklipakrfuwebkdnhwg.supabase.co'
 const SUPABASE_ANON_KEY = Constants.expoConfig?.extra?.supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xa2xpcGFrcmZ1d2Via2RuaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODA3NDUsImV4cCI6MjA4Mzg1Njc0NX0.yhIe3hqiLlyF8atvSmNOL3HBq91V9Frw5jYcat-sZxY'
 
+// API Configuration
+export const API_CONFIG = {
+  baseUrl: Constants.expoConfig?.extra?.apiUrl || 'https://authentichadith.app',
+}
+
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
     try {
