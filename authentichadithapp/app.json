@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.authentichadith.app"
+      "bundleIdentifier": "com.authentichadith.app",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "SKAdNetworkItems": []
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +47,9 @@
             "backgroundColor": "#0a2a1f"
           }
         }
+      ],
+      [
+        "expo-apple-authentication"
       ]
     ],
     "experiments": {
@@ -55,6 +62,8 @@
       },
       "supabaseUrl": "https://nqklipakrfuwebkdnhwg.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xa2xpcGFrcmZ1d2Via2RuaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODA3NDUsImV4cCI6MjA4Mzg1Njc0NX0.yhIe3hqiLlyF8atvSmNOL3HBq91V9Frw5jYcat-sZxY",
+      "revenueCatApiKeyIos": "REPLACE_WITH_REVENUECAT_IOS_KEY",
+      "revenueCatApiKeyAndroid": "REPLACE_WITH_REVENUECAT_ANDROID_KEY",
       "eas": {
         "projectId": "66afcbbf-55c3-48fb-9bf1-29efc52d09eb"
       }

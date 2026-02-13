@@ -78,6 +78,18 @@ export default function SettingsScreen() {
           />
         </SettingsSection>
 
+        <SettingsSection title="Subscription">
+          <SettingsItem
+            icon="star"
+            title="Manage Subscription"
+            subtitle="Plans, billing, and restore purchases"
+            showArrow
+            onPress={() => router.push('/settings/subscription')}
+            isFirst
+            isLast
+          />
+        </SettingsSection>
+
         <SettingsSection title="About">
           <SettingsItem
             icon="shield-checkmark"
@@ -93,6 +105,13 @@ export default function SettingsScreen() {
             subtitle="App info and version"
             showArrow
             onPress={() => router.push('/settings/about')}
+          />
+          <SettingsItem
+            icon="trash"
+            title="Delete Account"
+            subtitle="Permanently delete your account and data"
+            showArrow
+            onPress={() => router.push('/settings/delete-account')}
             isLast
           />
         </SettingsSection>
