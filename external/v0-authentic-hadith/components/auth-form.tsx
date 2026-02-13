@@ -26,7 +26,7 @@ export function AuthForm() {
     setError(null)
 
     const supabase = getSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -34,11 +34,26 @@ export function AuthForm() {
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
-      // Redirect to home - middleware will handle onboarding check
-      router.push("/home")
-      router.refresh()
+      return
     }
+
+    // Check if user has completed onboarding
+    if (data?.user) {
+      const { data: prefs } = await supabase
+        .from("user_preferences")
+        .select("onboarded")
+        .eq("user_id", data.user.id)
+        .single()
+
+      if (prefs?.onboarded) {
+        router.push("/home")
+      } else {
+        router.push("/onboarding")
+      }
+    } else {
+      router.push("/home")
+    }
+    router.refresh()
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -47,7 +62,7 @@ export function AuthForm() {
     setError(null)
 
     const supabase = getSupabaseBrowserClient()
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -61,28 +76,54 @@ export function AuthForm() {
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
-      setMessage("Please check your email to confirm your account.")
-      setLoading(false)
+      return
     }
+
+    // If email confirmation is disabled in Supabase, the user gets a session immediately
+    if (data?.session) {
+      router.push("/onboarding")
+      router.refresh()
+      return
+    }
+
+    // If email confirmation is enabled but the user already exists (identities is empty),
+    // Supabase returns a fake success -- tell the user to sign in instead
+    if (data?.user?.identities?.length === 0) {
+      setError("An account with this email already exists. Please sign in instead.")
+      setLoading(false)
+      return
+    }
+
+    // Email confirmation is enabled -- session is null, user needs to confirm
+    setMessage("Account created! Please check your email (including spam/junk folder) to confirm your account, then sign in.")
+    setLoading(false)
   }
 
   const handleOAuthSignIn = async (provider: "google" | "apple") => {
     setLoading(true)
     setError(null)
 
-    const supabase = getSupabaseBrowserClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo:
-          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-          `${window.location.origin}/auth/callback`,
-      },
-    })
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+            `${window.location.origin}/auth/callback`,
+        },
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        if (error.message.includes("provider is not enabled") || error.message.includes("unsupported")) {
+          setError(`Sign in with ${provider === "google" ? "Google" : "Apple"} is not available yet. Please use email and password.`)
+        } else {
+          setError(error.message)
+        }
+        setLoading(false)
+      }
+    } catch {
+      setError(`Sign in with ${provider === "google" ? "Google" : "Apple"} is not available yet. Please use email and password.`)
       setLoading(false)
     }
   }
@@ -117,7 +158,7 @@ export function AuthForm() {
               setMessage(null)
             }}
             className={`flex-1 pb-3 text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${
-              mode === "signin" ? "text-[#2C2416]" : "text-muted-foreground hover:text-[#2C2416]"
+              mode === "signin" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Sign In
@@ -130,7 +171,7 @@ export function AuthForm() {
               setMessage(null)
             }}
             className={`flex-1 pb-3 text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${
-              mode === "signup" ? "text-[#2C2416]" : "text-muted-foreground hover:text-[#2C2416]"
+              mode === "signup" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Sign Up
@@ -149,7 +190,7 @@ export function AuthForm() {
       {/* Forgot Password Header */}
       {mode === "forgot" && (
         <div className="text-center mb-6">
-          <h2 className="text-lg font-semibold text-[#2C2416] tracking-wide">Reset Password</h2>
+          <h2 className="text-lg font-semibold text-foreground tracking-wide">Reset Password</h2>
           <p className="text-sm text-muted-foreground mt-1">Enter your email to receive a reset link</p>
         </div>
       )}
@@ -162,7 +203,7 @@ export function AuthForm() {
         {/* Full Name - only for signup */}
         {mode === "signup" && (
           <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-medium text-[#2C2416]">
+            <label htmlFor="fullName" className="text-sm font-medium text-foreground">
               Full Name
             </label>
             <div className="relative">
@@ -182,7 +223,7 @@ export function AuthForm() {
 
         {/* Email */}
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-[#2C2416]">
+          <label htmlFor="email" className="text-sm font-medium text-foreground">
             Email Address
           </label>
           <div className="relative">
@@ -202,7 +243,7 @@ export function AuthForm() {
         {/* Password - not for forgot */}
         {mode !== "forgot" && (
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-[#2C2416]">
+            <label htmlFor="password" className="text-sm font-medium text-foreground">
               Password
             </label>
             <div className="relative">
@@ -220,7 +261,7 @@ export function AuthForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#2C2416] transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -296,7 +337,7 @@ export function AuthForm() {
             type="button"
             onClick={() => handleOAuthSignIn("google")}
             disabled={loading}
-            className="h-11 flex items-center justify-center gap-2 rounded-md border border-[#D4CFC7] bg-white hover:bg-[#F8F6F2] transition-colors text-sm font-medium text-[#2C2416] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-11 flex items-center justify-center gap-2 rounded-md border border-border bg-card hover:bg-muted transition-colors text-sm font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
