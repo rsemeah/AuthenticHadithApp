@@ -1,4 +1,5 @@
 import Constants from 'expo-constants'
+import { API_CONFIG } from '@/lib/supabase/client'
 
 export interface ChatMessage {
   id: string
@@ -7,15 +8,12 @@ export interface ChatMessage {
   timestamp: string
 }
 
-// Get API URL from environment or use production default
-const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'https://authentichadith.app'
-
 /**
  * Send a chat message to the AI assistant
  * This calls the web app's mobile-chat API endpoint
  */
 export async function sendChatMessage(messages: ChatMessage[]): Promise<string> {
-  const response = await fetch(`${API_URL}/api/mobile-chat`, {
+  const response = await fetch(`${API_CONFIG.baseUrl}/api/mobile-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
