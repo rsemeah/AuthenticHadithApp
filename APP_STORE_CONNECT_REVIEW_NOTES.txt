@@ -1,0 +1,31 @@
+== Test Account ==
+Email: reviewer@authentichadith.app
+Password: ReviewTest2026!
+
+== Core Flow (under 60 seconds) ==
+1. Sign in with the test account above.
+2. Tap "Collections" → "Sahih al-Bukhari" → any chapter → any hadith.
+3. Tap the bookmark icon to save a hadith.
+4. Tap "Learn" → "Foundations of Hadith" → start a lesson.
+
+== Account Deletion ==
+Settings → Privacy & Security → Delete My Account → type "DELETE" → confirm.
+All user data (profile, saved hadiths, learning progress, notes, AI history,
+subscription metadata) is archived then permanently purged. The auth account
+is removed. The user is signed out and cannot sign back in.
+
+== Subscriptions ==
+Settings → Manage Subscription shows available plans.
+"Restore Purchases" button is at the bottom of the subscription screen.
+Subscriptions use Apple In-App Purchase via RevenueCat.
+No external payment links are shown on iOS.
+Plans: Monthly Premium ($9.99/mo), Annual Premium ($49.99/yr), Lifetime ($99.99).
+
+== Content Methodology ==
+Authentic Hadith curates classical hadith collections from established scholarly
+sources (Sahih al-Bukhari, Sahih Muslim, and six other canonical compilations).
+AI features provide educational summaries only and do not issue religious rulings.
+
+== Privacy ==
+Privacy policy: https://authentichadith.app/privacy
+No advertising identifiers collected. No data sold to third parties.

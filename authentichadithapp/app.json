@@ -50,6 +50,14 @@
       ],
       [
         "expo-apple-authentication"
+      ],
+      [
+        "react-native-purchases",
+        {
+          "ios": {
+            "usesStoreKit2": true
+          }
+        }
       ]
     ],
     "experiments": {
