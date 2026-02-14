@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import 'react-native-reanimated';
+import Purchases from 'react-native-purchases';
 
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -45,6 +47,12 @@ function AppContent() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    Purchases.configure({
+      apiKey: 'test_gngYicqPNakjsEBKvUwfIlFHrUg',
+    });
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

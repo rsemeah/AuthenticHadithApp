@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import Purchases, { CustomerInfo, PurchasesOffering, LOG_LEVEL } from 'react-native-purchases'
-import { Platform } from 'react-native'
-import { REVENUECAT_API_KEY, ENTITLEMENT_ID } from './config'
+import { ENTITLEMENT_ID } from './config'
 
 interface RevenueCatContextType {
   customerInfo: CustomerInfo | null
@@ -43,13 +42,8 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
           Purchases.setLogLevel(LOG_LEVEL.DEBUG)
         }
 
-        if (Platform.OS === 'ios') {
-          Purchases.configure({ apiKey: REVENUECAT_API_KEY })
-        } else if (Platform.OS === 'android') {
-          Purchases.configure({ apiKey: REVENUECAT_API_KEY })
-        }
-
-        // Fetch initial customer info
+        // SDK is configured in _layout.tsx via Purchases.configure()
+        // Here we just fetch initial data
         const info = await Purchases.getCustomerInfo()
         setCustomerInfo(info)
 
