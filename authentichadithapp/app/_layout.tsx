@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
+import { RevenueCatProvider } from '@/lib/revenuecat/RevenueCatProvider';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -49,7 +50,9 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
-            <AppContent />
+            <RevenueCatProvider>
+              <AppContent />
+            </RevenueCatProvider>
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
