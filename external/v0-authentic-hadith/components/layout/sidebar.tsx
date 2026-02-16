@@ -29,6 +29,7 @@ import {
   Shield,
   Star,
   Trophy,
+  Info,
 } from "lucide-react"
 
 interface NavGroup {
@@ -89,6 +90,7 @@ const navGroups: NavGroup[] = [
 const bottomNavItems = [
   { id: "profile", icon: User, label: "Profile", href: "/profile" },
   { id: "settings", icon: Settings, label: "Settings", href: "/settings" },
+  { id: "about", icon: Info, label: "About", href: "/about" },
 ]
 
 export function Sidebar() {

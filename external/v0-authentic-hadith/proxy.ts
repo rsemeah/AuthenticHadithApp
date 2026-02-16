@@ -6,7 +6,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config"
 const publicPaths = ["/", "/login", "/pricing", "/checkout/success", "/reset-password"]
 
 // Routes that require authentication
-const protectedPrefixes = ["/home", "/dashboard", "/onboarding", "/profile", "/settings", "/saved", "/collections", "/hadith", "/assistant", "/search", "/learn"]
+const protectedPrefixes = ["/home", "/dashboard", "/onboarding", "/profile", "/settings", "/saved", "/collections", "/hadith", "/assistant", "/search", "/learn", "/today", "/sunnah", "/stories", "/reflections", "/quiz", "/progress", "/share", "/topics"]
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -88,8 +88,8 @@ export async function proxy(request: NextRequest) {
       url.pathname = "/onboarding"
       return NextResponse.redirect(url)
     }
-  } catch (err) {
-    console.error("[v0] Proxy error:", err)
+  } catch {
+    // Proxy error - allow request to continue
   }
 
   return supabaseResponse

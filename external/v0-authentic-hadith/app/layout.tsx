@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Cinzel, Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { ThemeProvider } from "@/components/theme-provider"
 import { AppShell } from "@/components/layout/app-shell"
 import "./globals.css"
 
@@ -23,9 +24,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Authentic Hadith - Learn From Verified Sources",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://authentichadith.app"),
   description:
     "Access verified collections of prophetic traditions, meticulously authenticated and preserved for generations of knowledge seekers.",
   generator: "v0.app",
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "YOUR_VERIFICATION_CODE",
+  },
   icons: {
     icon: [
       {
@@ -58,9 +63,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background">
+    <html lang="en" className="bg-background" suppressHydrationWarning>
       <body className={`${cinzel.variable} ${geist.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}>
-        <AppShell>{children}</AppShell>
+        <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+          <AppShell>{children}</AppShell>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

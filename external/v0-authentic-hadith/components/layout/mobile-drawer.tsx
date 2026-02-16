@@ -16,6 +16,7 @@ import {
   Bookmark,
   Search,
   HelpCircle,
+  Info,
   User,
   Settings,
   LogOut,
@@ -65,6 +66,7 @@ const drawerGroups = [
     items: [
       { icon: User, label: "Profile", href: "/profile" },
       { icon: Settings, label: "Settings", href: "/settings" },
+      { icon: Info, label: "About", href: "/about" },
     ],
   },
 ]
@@ -76,8 +78,11 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
 
   // Close drawer on route change
   useEffect(() => {
-    onClose()
-  }, [pathname, onClose])
+    if (open) {
+      onClose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   // Lock body scroll when open
   useEffect(() => {

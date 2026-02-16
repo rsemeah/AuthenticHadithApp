@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { ChevronLeft, Bookmark, Share2, BookOpen } from "lucide-react"
+import { ChevronLeft, Bookmark, Share2, BookOpen, ImageIcon, CheckCircle2, Hash, FolderOpen } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
-import { BottomNavigation } from "@/components/home/bottom-navigation"
+
+import { DiscussionSection } from "@/components/hadith/discussion-section"
 import { cn } from "@/lib/utils"
 import { parseEnglishTranslation, getCollectionDisplayName } from "@/lib/hadith-utils"
+import { trackActivity } from "@/app/actions/track-activity"
 
 interface Hadith {
   id: string
@@ -26,7 +28,13 @@ export default function HadithDetailPage() {
   const supabase = getSupabaseBrowserClient()
   const [hadith, setHadith] = useState<Hadith | null>(null)
   const [isSaved, setIsSaved] = useState(false)
+  const [isRead, setIsRead] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [enrichment, setEnrichment] = useState<{
+    summary_line: string | null
+    category: { slug: string; name_en: string } | null
+    tags: Array<{ slug: string; name_en: string }>
+  } | null>(null)
 
   useEffect(() => {
     const fetchHadith = async () => {
@@ -49,6 +57,15 @@ export default function HadithDetailPage() {
 
           setIsSaved(!!savedData)
 
+          // Check if marked as read
+          const { data: readData } = await supabase
+            .from("reading_progress")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("hadith_id", data.id)
+            .single()
+          setIsRead(!!readData)
+
           // Track view
           await supabase
             .from("hadith_views")
@@ -58,6 +75,29 @@ export default function HadithDetailPage() {
             )
         }
       }
+      // Fetch enrichment data
+      const { data: enrichData } = await supabase
+        .from("hadith_enrichment")
+        .select("summary_line, category:categories!category_id(slug, name_en)")
+        .eq("hadith_id", params.id)
+        .eq("status", "published")
+        .single()
+
+      if (enrichData) {
+        // Fetch tags
+        const { data: tagData } = await supabase
+          .from("hadith_tags")
+          .select("tag:tags!tag_id(slug, name_en)")
+          .eq("hadith_id", params.id as string)
+          .eq("status", "published")
+
+        setEnrichment({
+          summary_line: enrichData.summary_line,
+          category: enrichData.category as { slug: string; name_en: string } | null,
+          tags: (tagData || []).map((t: { tag: { slug: string; name_en: string } | null }) => t.tag).filter(Boolean) as Array<{ slug: string; name_en: string }>,
+        })
+      }
+
       setLoading(false)
     }
 
@@ -72,13 +112,59 @@ export default function HadithDetailPage() {
 
     if (isSaved) {
       await supabase.from("saved_hadiths").delete().eq("user_id", user.id).eq("hadith_id", hadith.id)
+      // Also remove from user_bookmarks
+      await supabase
+        .from("user_bookmarks")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("item_id", hadith.id)
+        .eq("item_type", "hadith")
     } else {
       await supabase.from("saved_hadiths").insert({
         user_id: user.id,
         hadith_id: hadith.id,
       })
+      // Also add to user_bookmarks for My Hadith
+      await supabase.from("user_bookmarks").upsert(
+        {
+          user_id: user.id,
+          item_id: hadith.id,
+          item_type: "hadith",
+          bookmarked_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,item_id,item_type" },
+      )
+      trackActivity("hadith_save", hadith.id).catch(() => {})
     }
     setIsSaved(!isSaved)
+  }
+
+  const handleMarkRead = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user || !hadith) return
+
+    if (isRead) {
+      await supabase.from("reading_progress").delete().eq("user_id", user.id).eq("hadith_id", hadith.id)
+    } else {
+      // Find the collection_id for this hadith
+      const { data: collData } = await supabase
+        .from("collections")
+        .select("id")
+        .eq("slug", hadith.collection)
+        .single()
+
+      await supabase.from("reading_progress").insert({
+        user_id: user.id,
+        hadith_id: hadith.id,
+        collection_id: collData?.id || null,
+      })
+
+      // Award XP for reading a hadith
+      trackActivity("hadith_read", hadith.id).catch(() => {})
+    }
+    setIsRead(!isRead)
   }
 
   const handleShare = async () => {
@@ -93,6 +179,7 @@ export default function HadithDetailPage() {
       await navigator.clipboard.writeText(window.location.href)
       alert("Link copied to clipboard!")
     }
+    trackActivity("hadith_shared", hadith.id).catch(() => {})
   }
 
   const gradeColors = {
@@ -132,16 +219,16 @@ export default function HadithDetailPage() {
   return (
     <div className="min-h-screen marble-bg pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center hover:border-[#C5A059] transition-colors"
+              className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center hover:border-[#C5A059] transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-[#6b7280]" />
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
             </button>
-            <h1 className="text-lg font-semibold text-[#1a1f36]">Hadith Detail</h1>
+            <h1 className="text-lg font-semibold text-foreground">Hadith Detail</h1>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -150,14 +237,21 @@ export default function HadithDetailPage() {
                 "w-10 h-10 rounded-full flex items-center justify-center transition-all",
                 isSaved
                   ? "bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-white"
-                  : "bg-[#F8F6F2] border border-[#e5e7eb] text-[#6b7280] hover:border-[#C5A059]",
+                  : "bg-background border border-border text-muted-foreground hover:border-[#C5A059]",
               )}
             >
               <Bookmark className={cn("w-5 h-5", isSaved && "fill-current")} />
             </button>
             <button
+              onClick={() => router.push(`/share?hadith=${hadith?.id}`)}
+              className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:border-[#C5A059] transition-colors"
+              title="Create sharing card"
+            >
+              <ImageIcon className="w-5 h-5" />
+            </button>
+            <button
               onClick={handleShare}
-              className="w-10 h-10 rounded-full bg-[#F8F6F2] border border-[#e5e7eb] flex items-center justify-center text-[#6b7280] hover:border-[#C5A059] transition-colors"
+              className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:border-[#C5A059] transition-colors"
             >
               <Share2 className="w-5 h-5" />
             </button>
@@ -183,10 +277,42 @@ export default function HadithDetailPage() {
             </span>
           </div>
 
+          {/* Enrichment: Summary + Tags */}
+          {enrichment && (
+            <div className="mb-6 space-y-3">
+              {enrichment.summary_line && (
+                <p className="text-base font-semibold text-[#C5A059] leading-snug">
+                  {enrichment.summary_line}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {enrichment.category && (
+                  <button
+                    onClick={() => router.push(`/topics/${enrichment.category!.slug}`)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#1B5E43]/10 text-[#1B5E43] text-xs font-medium hover:bg-[#1B5E43]/20 transition-colors"
+                  >
+                    <FolderOpen className="w-3 h-3" />
+                    {enrichment.category.name_en}
+                  </button>
+                )}
+                {enrichment.tags.map((tag) => (
+                  <button
+                    key={tag.slug}
+                    onClick={() => router.push(`/topics/tag/${tag.slug}`)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#C5A059]/10 text-[#8A6E3A] text-xs font-medium hover:bg-[#C5A059]/20 transition-colors"
+                  >
+                    <Hash className="w-3 h-3" />
+                    {tag.name_en}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Arabic Text */}
           <div className="mb-8" dir="rtl" lang="ar">
             <p
-              className="text-2xl sm:text-3xl leading-[2] text-[#1a1f36] text-right"
+              className="text-2xl sm:text-3xl leading-[2] text-foreground text-right"
               style={{ fontFamily: "Amiri, serif" }}
             >
               {hadith.arabic_text}
@@ -204,37 +330,55 @@ export default function HadithDetailPage() {
               return (
                 <>
                   {parsedNarrator && (
-                    <p className="text-sm font-medium text-[#6b7280] italic mb-2">
+                    <p className="text-sm font-medium text-muted-foreground italic mb-2">
                       Narrated by {parsedNarrator}
                     </p>
                   )}
-                  <p className="text-lg leading-relaxed text-[#4a5568]">{parsedText}</p>
+                  <p className="text-lg leading-relaxed text-foreground/80">{parsedText}</p>
                 </>
               )
             })()}
           </div>
 
           {/* Metadata */}
-          <div className="bg-[#fafaf9] rounded-xl p-4 space-y-2">
+          <div className="bg-muted/50 rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Reference</span>
-              <span className="text-[#1a1f36] font-medium">{hadith.reference}</span>
+              <span className="text-foreground font-medium">{hadith.reference}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Narrator</span>
-              <span className="text-[#1a1f36] font-medium">
+              <span className="text-foreground font-medium">
                 {hadith.narrator || parseEnglishTranslation(hadith.english_translation).narrator || "Unknown"}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Grade</span>
-              <span className="text-[#1a1f36] font-medium">{gradeLabels[hadith.grade]}</span>
+              <span className="text-foreground font-medium">{gradeLabels[hadith.grade]}</span>
             </div>
           </div>
+
+          {/* Mark as Read Button */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <button
+              onClick={handleMarkRead}
+              className={cn(
+                "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all",
+                isRead
+                  ? "bg-[#1B5E43]/10 border-2 border-[#1B5E43] text-[#1B5E43]"
+                  : "emerald-button text-white",
+              )}
+            >
+              <CheckCircle2 className={cn("w-5 h-5", isRead && "fill-[#1B5E43] text-white")} />
+              {isRead ? "Marked as Read" : "Mark as Read"}
+            </button>
+          </div>
         </div>
+
+        {/* Community Discussion */}
+        <DiscussionSection hadithId={hadith.id} />
       </main>
 
-      <BottomNavigation />
     </div>
   )
 }
