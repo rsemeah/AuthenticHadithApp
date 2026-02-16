@@ -1,6 +1,10 @@
 import { Platform } from 'react-native'
+import Constants from 'expo-constants'
 
-export const REVENUECAT_API_KEY = 'test_gngYicqPNakjsEBKvUwfIlFHrUg'
+const extra = Constants.expoConfig?.extra ?? {}
+
+export const REVENUECAT_API_KEY: string =
+  extra.revenueCatApiKey ?? 'test_gngYicqPNakjsEBKvUwfIlFHrUg'
 
 export const ENTITLEMENT_ID = 'RedLantern Studios Pro'
 
