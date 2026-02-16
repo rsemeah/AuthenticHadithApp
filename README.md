@@ -24,6 +24,15 @@ This project consists of two integrated components:
 - **Web Application** (`v0-authentic-hadith`) - Next.js-based web platform
 - **Mobile Application** (`AuthenticHadithApp`) - React Native/Expo mobile apps
 
+### iOS App Store Submission Scope
+
+If you are preparing an iOS build for App Store submission, submit **only the mobile app project** (`authentichadithapp/`) through Expo/Xcode.
+
+- ✅ Submit: React Native / Expo iOS build from `authentichadithapp/`
+- ❌ Do not submit: Next.js web app source in `external/v0-authentic-hadith/`
+
+The web app and mobile app can share APIs and product logic, but Apple submission artifacts must come from the native mobile build output only.
+
 ---
 
 ## 📱 Features
