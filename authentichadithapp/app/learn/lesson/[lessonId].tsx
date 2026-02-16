@@ -1,7 +1,7 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +12,8 @@ import { Lesson } from '@/types/hadith';
 export default function LessonDetailScreen() {
   const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [completing, setCompleting] = useState(false);
 
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', lessonId],
@@ -57,12 +59,33 @@ export default function LessonDetailScreen() {
         </Card>
 
         <Button
-          title="Mark as Complete"
-          onPress={() => {
-            // TODO: Implement lesson completion
-            router.back();
+          title={completing ? "Completing..." : "Mark as Complete"}
+          onPress={async () => {
+            setCompleting(true);
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) {
+                Alert.alert('Error', 'You must be logged in to track progress.');
+                return;
+              }
+              await supabase.from('lesson_progress').upsert({
+                user_id: user.id,
+                lesson_id: lessonId,
+                completed: true,
+                completed_at: new Date().toISOString(),
+              }, { onConflict: 'user_id,lesson_id' });
+              queryClient.invalidateQueries({ queryKey: ['lesson'] });
+              Alert.alert('Lesson Complete', 'Great progress! Keep learning.', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
+            } catch (err) {
+              Alert.alert('Error', 'Failed to mark lesson complete. Please try again.');
+            } finally {
+              setCompleting(false);
+            }
           }}
           variant="primary"
+          disabled={completing}
         />
       </View>
     </ScrollView>

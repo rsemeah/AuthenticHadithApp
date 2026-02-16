@@ -22,29 +22,36 @@ export default function SearchScreen() {
 
       // Sanitize the search query to prevent SQL injection
       const sanitizedQuery = debouncedQuery.replace(/[%_]/g, '\\$&').trim()
-      
+
+      // Expand query with TruthSerum synonym engine
+      const expandedTerms = expandSearchQuery(sanitizedQuery)
+
       // Use Supabase's textSearch for full-text search (safer than ILIKE)
       const { data, error } = await supabase
         .from('hadiths')
         .select('*')
-        .textSearch('english_text', sanitizedQuery, {
+        .textSearch('english_text', expandedTerms.slice(0, 5).join(' | '), {
           type: 'websearch',
           config: 'english'
         })
         .limit(50);
 
       if (error) {
-        // Fallback to ILIKE search if textSearch fails
+        // Fallback to ILIKE search with expanded terms
+        const orFilter = expandedTerms.slice(0, 5).map(
+          term => `english_text.ilike.%${term}%`
+        ).join(',')
+
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('hadiths')
           .select('*')
-          .ilike('english_text', `%${sanitizedQuery}%`)
+          .or(orFilter)
           .limit(50);
-          
+
         if (fallbackError) throw fallbackError;
         return fallbackData as Hadith[];
       }
-      
+
       return data as Hadith[];
     },
     enabled: debouncedQuery.length > 2,

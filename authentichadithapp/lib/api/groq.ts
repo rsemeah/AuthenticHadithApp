@@ -1,3 +1,6 @@
+import { Platform } from 'react-native'
+import Constants from 'expo-constants'
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -6,12 +9,25 @@ export interface ChatMessage {
 }
 
 /**
+ * Get the chat API base URL.
+ * - On web: use relative path (Expo Router API routes work)
+ * - On native (iOS/Android): use the deployed web app URL since
+ *   Expo Router API routes don't run on native devices
+ */
+function getChatApiUrl(): string {
+  if (Platform.OS === 'web') {
+    return '/api/chat'
+  }
+  // For native, use the deployed web app's API endpoint
+  const baseUrl = Constants.expoConfig?.extra?.apiBaseUrl || 'https://authentichadith.app'
+  return `${baseUrl}/api/chat`
+}
+
+/**
  * Send a chat message to the AI assistant
- * Note: This uses a relative path '/api/chat' which works with Expo Router's API routes.
- * The path is resolved relative to the app's base URL in web builds.
  */
 export async function sendChatMessage(messages: ChatMessage[]): Promise<string> {
-  const response = await fetch('/api/chat', {
+  const response = await fetch(getChatApiUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

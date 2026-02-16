@@ -4,7 +4,7 @@ import type { HadithFolder, SavedHadithWithNotes, FolderCollaborator } from '@/t
 // Folders
 export async function getUserFolders(userId: string) {
   const { data, error } = await supabase
-    .from('hadith_folders')
+    .from('user_folders')
     .select(`
       *,
       saved_hadiths(count)
@@ -18,7 +18,7 @@ export async function getUserFolders(userId: string) {
 
 export async function createFolder(folder: Partial<HadithFolder>) {
   const { data, error } = await supabase
-    .from('hadith_folders')
+    .from('user_folders')
     .insert(folder)
     .select()
     .single()
@@ -29,7 +29,7 @@ export async function createFolder(folder: Partial<HadithFolder>) {
 
 export async function updateFolder(id: string, updates: Partial<HadithFolder>) {
   const { data, error } = await supabase
-    .from('hadith_folders')
+    .from('user_folders')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
@@ -41,7 +41,7 @@ export async function updateFolder(id: string, updates: Partial<HadithFolder>) {
 
 export async function deleteFolder(id: string) {
   const { error } = await supabase
-    .from('hadith_folders')
+    .from('user_folders')
     .delete()
     .eq('id', id)
   
@@ -127,7 +127,7 @@ export async function generateShareToken(folderId: string, privacy: 'public' | '
 
 export async function getFolderByShareToken(token: string) {
   const { data, error } = await supabase
-    .from('hadith_folders')
+    .from('user_folders')
     .select(`
       *,
       saved_hadiths(

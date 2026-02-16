@@ -3,8 +3,11 @@ import Constants from 'expo-constants'
 
 const extra = Constants.expoConfig?.extra ?? {}
 
-export const REVENUECAT_API_KEY: string =
-  extra.revenueCatApiKey ?? 'test_gngYicqPNakjsEBKvUwfIlFHrUg'
+const rcKey = extra.revenueCatApiKey
+if (!rcKey || rcKey.startsWith('test_')) {
+  console.warn('[RevenueCat] Using test API key — payments will not work in production. Set REVENUECAT_IOS_KEY env var.')
+}
+export const REVENUECAT_API_KEY: string = rcKey ?? ''
 
 export const ENTITLEMENT_ID = 'RedLantern Studios Pro'
 

@@ -5,8 +5,6 @@ module.exports = ({ config }) => ({
   ...config,
   extra: {
     ...config.extra,
-    revenueCatApiKey: IS_PROD
-      ? process.env.REVENUECAT_IOS_KEY
-      : "test_gngYicqPNakjsEBKvUwfIlFHrUg",
+    revenueCatApiKey: process.env.REVENUECAT_IOS_KEY || "",
   },
 });
