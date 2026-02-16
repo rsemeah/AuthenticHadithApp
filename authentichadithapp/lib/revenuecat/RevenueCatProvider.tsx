@@ -34,7 +34,6 @@ export function RevenueCatProvider({ children }: RevenueCatProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   const isPro = customerInfo?.entitlements.active[ENTITLEMENT_ID]?.isActive === true
-
   useEffect(() => {
     async function init() {
       try {
