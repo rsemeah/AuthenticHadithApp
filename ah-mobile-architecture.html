@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Authentic Hadith — Mobile Architecture</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --emerald:#1b5e43;--emerald-light:#2d8a65;--emerald-dark:#0f3d2b;
+    --gold:#c5a059;--gold-light:#d4b77a;--gold-dark:#a8863e;
+    --marble:#f8f6f2;
+    --bg:#0a0f0d;--bg-card:#111916;--bg-card-hover:#172019;
+    --text:#e8e6e2;--text-muted:#8a9690;
+    --blue:#2563eb;--blue-bg:rgba(37,99,235,.10);--blue-border:rgba(37,99,235,.35);
+    --yellow:#eab308;--yellow-bg:rgba(234,179,8,.08);--yellow-border:rgba(234,179,8,.30);
+    --orange:#f97316;--orange-bg:rgba(249,115,22,.08);--orange-border:rgba(249,115,22,.30);
+    --green:#22c55e;--green-bg:rgba(34,197,94,.08);--green-border:rgba(34,197,94,.30);
+    --purple:#a855f7;--purple-bg:rgba(168,85,247,.08);--purple-border:rgba(168,85,247,.30);
+    --red:#b91c1c;
+    --radius:12px;--radius-sm:8px;--radius-lg:16px;
+    --shadow:0 4px 24px rgba(0,0,0,.4);
+    --transition:0.3s cubic-bezier(.4,0,.2,1);
+  }
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--text);
+    line-height:1.6;overflow-x:hidden;
+    min-height:100vh;
+  }
+  /* ── Background Pattern ── */
+  body::before{
+    content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(27,94,67,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(197,160,89,.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, rgba(168,85,247,.04) 0%, transparent 70%);
+  }
+  /* ── Grid Dots ── */
+  body::after{
+    content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.06;
+    background-image:radial-gradient(circle,var(--text) 1px,transparent 1px);
+    background-size:32px 32px;
+  }
+
+  /* ── Header ── */
+  .header{
+    position:relative;z-index:10;text-align:center;
+    padding:48px 24px 32px;
+    border-bottom:1px solid rgba(197,160,89,.15);
+    background:linear-gradient(180deg,rgba(27,94,67,.08) 0%,transparent 100%);
+  }
+  .header-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 16px;border-radius:999px;
+    background:rgba(197,160,89,.1);border:1px solid rgba(197,160,89,.25);
+    color:var(--gold);font-size:12px;font-weight:600;letter-spacing:1.5px;
+    text-transform:uppercase;margin-bottom:16px;
+  }
+  .header-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse-dot 2s ease-in-out infinite}
+  @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+  .header h1{
+    font-size:clamp(28px,5vw,42px);font-weight:700;
+    background:linear-gradient(135deg,var(--marble) 0%,var(--gold-light) 50%,var(--emerald-light) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;margin-bottom:8px;
+  }
+  .header .subtitle{color:var(--text-muted);font-size:clamp(13px,2vw,16px);max-width:700px;margin:0 auto}
+  .header .tech-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:20px}
+  .tech-pill{
+    padding:4px 12px;border-radius:999px;font-size:11px;font-weight:600;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text-muted);
+  }
+
+  /* ── Legend ── */
+  .legend{
+    position:relative;z-index:10;display:flex;flex-wrap:wrap;justify-content:center;gap:12px;
+    padding:20px 24px;margin:0 auto;max-width:900px;
+  }
+  .legend-item{
+    display:flex;align-items:center;gap:6px;font-size:12px;
+    color:var(--text-muted);cursor:pointer;
+    padding:4px 10px;border-radius:999px;transition:var(--transition);
+    border:1px solid transparent;
+  }
+  .legend-item:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1)}
+  .legend-dot{width:10px;height:10px;border-radius:50%}
+
+  /* ── Main Container ── */
+  .container{
+    position:relative;z-index:10;
+    max-width:1280px;margin:0 auto;padding:16px 20px 60px;
+  }
+
+  /* ── Flow Lines SVG ── */
+  .flow-svg{
+    position:absolute;top:0;left:0;width:100%;height:100%;
+    pointer-events:none;z-index:1;overflow:visible;
+  }
+
+  /* ── Zone ── */
+  .zone{
+    position:relative;z-index:5;
+    border-radius:var(--radius-lg);padding:24px;margin-bottom:24px;
+    border:1px solid;transition:var(--transition);
+    cursor:pointer;
+  }
+  .zone:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+  .zone.blue{background:var(--blue-bg);border-color:var(--blue-border)}
+  .zone.yellow{background:var(--yellow-bg);border-color:var(--yellow-border)}
+  .zone.orange{background:var(--orange-bg);border-color:var(--orange-border)}
+  .zone.green{background:var(--green-bg);border-color:var(--green-border)}
+  .zone.purple{background:var(--purple-bg);border-color:var(--purple-border)}
+
+  .zone-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .zone-icon{
+    width:40px;height:40px;border-radius:var(--radius-sm);
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    flex-shrink:0;
+  }
+  .blue .zone-icon{background:rgba(37,99,235,.2);color:var(--blue)}
+  .yellow .zone-icon{background:rgba(234,179,8,.15);color:var(--yellow)}
+  .orange .zone-icon{background:rgba(249,115,22,.15);color:var(--orange)}
+  .green .zone-icon{background:rgba(34,197,94,.15);color:var(--green)}
+  .purple .zone-icon{background:rgba(168,85,247,.15);color:var(--purple)}
+
+  .zone-title{font-size:18px;font-weight:700}
+  .blue .zone-title{color:var(--blue)}
+  .yellow .zone-title{color:var(--yellow)}
+  .orange .zone-title{color:var(--orange)}
+  .green .zone-title{color:var(--green)}
+  .purple .zone-title{color:var(--purple)}
+
+  .zone-subtitle{font-size:12px;color:var(--text-muted);margin-left:auto}
+
+  .zone-toggle{
+    margin-left:auto;width:28px;height:28px;border-radius:50%;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+    color:var(--text-muted);font-size:14px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:var(--transition);flex-shrink:0;
+  }
+  .zone-toggle:hover{background:rgba(255,255,255,.1)}
+  .zone.expanded .zone-toggle{transform:rotate(180deg)}
+
+  .zone-content{overflow:hidden;transition:max-height .4s ease, opacity .3s ease;max-height:0;opacity:0}
+  .zone.expanded .zone-content{max-height:5000px;opacity:1}
+
+  /* ── Cards Grid ── */
+  .cards-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .card{
+    background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);
+    border-radius:var(--radius);padding:16px;transition:var(--transition);
+    position:relative;
+  }
+  .card:hover{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.12);transform:translateY(-1px)}
+  .card-title{font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .card-desc{font-size:12px;color:var(--text-muted);line-height:1.5}
+  .card-tag{
+    display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;
+    margin-top:8px;
+  }
+  .tag-emerald{background:rgba(27,94,67,.2);color:var(--emerald-light)}
+  .tag-gold{background:rgba(197,160,89,.15);color:var(--gold)}
+  .tag-blue{background:rgba(37,99,235,.15);color:#60a5fa}
+  .tag-purple{background:rgba(168,85,247,.15);color:#c084fc}
+  .tag-green{background:rgba(34,197,94,.15);color:#4ade80}
+  .tag-orange{background:rgba(249,115,22,.15);color:#fb923c}
+  .tag-red{background:rgba(185,28,28,.15);color:#f87171}
+
+  /* ── Tabs Row (for App Layer) ── */
+  .tabs-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .tab-chip{
+    padding:4px 12px;border-radius:999px;font-size:11px;font-weight:600;
+    cursor:pointer;transition:var(--transition);
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    color:var(--text-muted);
+  }
+  .tab-chip:hover,.tab-chip.active{
+    background:rgba(234,179,8,.12);border-color:rgba(234,179,8,.35);color:var(--yellow);
+  }
+
+  /* ── Sub-section ── */
+  .sub-section{margin-bottom:20px}
+  .sub-section-title{
+    font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+    margin-bottom:10px;padding-bottom:6px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+
+  /* ── Items list ── */
+  .items-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .item-chip{
+    padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+    color:var(--text-muted);transition:var(--transition);
+    position:relative;cursor:default;
+  }
+  .item-chip:hover{background:rgba(255,255,255,.08);color:var(--text)}
+
+  /* ── Tooltip ── */
+  .tooltip{
+    position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    background:#1a2420;border:1px solid rgba(197,160,89,.25);
+    border-radius:var(--radius-sm);padding:8px 12px;
+    font-size:11px;color:var(--text);white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .2s;z-index:100;
+    box-shadow:0 8px 24px rgba(0,0,0,.5);
+  }
+  .tooltip::after{
+    content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:#1a2420;
+  }
+  .item-chip:hover .tooltip,.card:hover .tooltip{opacity:1}
+
+  /* ── Data Flow Section ── */
+  .flows-section{
+    position:relative;z-index:10;
+    max-width:1280px;margin:0 auto 40px;padding:0 20px;
+  }
+  .flows-title{
+    font-size:20px;font-weight:700;margin-bottom:20px;text-align:center;
+    background:linear-gradient(135deg,var(--gold-light),var(--emerald-light));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .flow-cards{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+  .flow-card{
+    background:var(--bg-card);border:1px solid rgba(255,255,255,.06);
+    border-radius:var(--radius);padding:20px;cursor:pointer;
+    transition:var(--transition);position:relative;overflow:hidden;
+  }
+  .flow-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--emerald),var(--gold));
+    opacity:0;transition:opacity .3s;
+  }
+  .flow-card:hover{border-color:rgba(197,160,89,.2);transform:translateY(-2px);box-shadow:var(--shadow)}
+  .flow-card:hover::before{opacity:1}
+  .flow-card-title{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .flow-card-title .flow-num{
+    width:22px;height:22px;border-radius:50%;
+    background:linear-gradient(135deg,var(--emerald),var(--gold));
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+  }
+  .flow-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+  .flow-step{
+    padding:3px 8px;border-radius:4px;font-size:10px;font-weight:500;
+    background:rgba(255,255,255,.05);color:var(--text-muted);
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .flow-arrow{color:var(--gold);font-size:12px;flex-shrink:0}
+  .flow-detail{
+    margin-top:10px;font-size:11px;color:var(--text-muted);
+    max-height:0;overflow:hidden;transition:max-height .3s ease;
+  }
+  .flow-card.expanded .flow-detail{max-height:200px}
+
+  /* ── Native Modules & Design Tokens ── */
+  .bottom-sections{
+    position:relative;z-index:10;
+    max-width:1280px;margin:0 auto;padding:0 20px 60px;
+    display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  }
+  .bottom-card{
+    background:var(--bg-card);border:1px solid rgba(255,255,255,.06);
+    border-radius:var(--radius-lg);padding:24px;
+  }
+  .bottom-card h3{
+    font-size:15px;font-weight:700;margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+
+  /* ── Animated Flow Lines ── */
+  @keyframes dash-flow{to{stroke-dashoffset:-30}}
+  .flow-line{
+    fill:none;stroke-width:1.5;opacity:.35;
+    stroke-dasharray:8 6;animation:dash-flow 1.2s linear infinite;
+  }
+  .flow-line.gold{stroke:var(--gold)}
+  .flow-line.emerald{stroke:var(--emerald-light)}
+  .flow-line.purple{stroke:var(--purple)}
+  .flow-line.blue{stroke:var(--blue)}
+  .flow-line.orange{stroke:var(--orange)}
+
+  /* ── Animated Decorations ── */
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .float-anim{animation:float 4s ease-in-out infinite}
+
+  /* ── Responsive ── */
+  @media(max-width:768px){
+    .container,.flows-section,.bottom-sections{padding-left:12px;padding-right:12px}
+    .zone{padding:16px}
+    .cards-grid{grid-template-columns:1fr}
+    .flow-cards{grid-template-columns:1fr}
+    .bottom-sections{grid-template-columns:1fr}
+    .header{padding:32px 16px 24px}
+  }
+  @media(max-width:480px){
+    .cards-grid{grid-template-columns:1fr}
+    .tabs-row{gap:4px}
+    .tab-chip{font-size:10px;padding:3px 8px}
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(197,160,89,.2);border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(197,160,89,.35)}
+
+  /* ── Component count badges ── */
+  .count-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:20px;height:20px;border-radius:999px;
+    font-size:10px;font-weight:700;padding:0 6px;
+    background:rgba(255,255,255,.08);color:var(--text-muted);
+    margin-left:6px;
+  }
+
+  /* ── Stat bar ── */
+  .stat-bar{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);
+  }
+  .stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .stat-value{font-size:18px;font-weight:700;color:var(--gold)}
+  .stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+
+  /* ── Glow effects ── */
+  .zone.blue:hover{box-shadow:0 0 40px rgba(37,99,235,.08)}
+  .zone.yellow:hover{box-shadow:0 0 40px rgba(234,179,8,.06)}
+  .zone.orange:hover{box-shadow:0 0 40px rgba(249,115,22,.06)}
+  .zone.green:hover{box-shadow:0 0 40px rgba(34,197,94,.06)}
+  .zone.purple:hover{box-shadow:0 0 40px rgba(168,85,247,.06)}
+
+  /* ── Expand all btn ── */
+  .expand-all-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:8px 18px;border-radius:999px;font-size:12px;font-weight:600;
+    background:rgba(197,160,89,.1);border:1px solid rgba(197,160,89,.25);
+    color:var(--gold);cursor:pointer;transition:var(--transition);
+    margin:0 auto 20px;
+  }
+  .expand-all-btn:hover{background:rgba(197,160,89,.18)}
+  .center-row{display:flex;justify-content:center}
+
+  /* ── Two-col inside zone ── */
+  .two-col{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+</style>
+</head>
+<body>
+
+<!-- ════════════ HEADER ════════════ -->
+<header class="header">
+  <div class="header-badge"><span class="dot"></span> SYSTEM ARCHITECTURE</div>
+  <h1>Authentic Hadith — Mobile Architecture</h1>
+  <p class="subtitle">Expo React Native application with offline-first design, secure storage, and AI-powered hadith assistant</p>
+  <div class="tech-pills">
+    <span class="tech-pill">Expo SDK 54</span>
+    <span class="tech-pill">React Native 0.81.5</span>
+    <span class="tech-pill">Expo Router 6</span>
+    <span class="tech-pill">TypeScript</span>
+    <span class="tech-pill">TanStack Query</span>
+    <span class="tech-pill">Supabase</span>
+    <span class="tech-pill">RevenueCat</span>
+    <span class="tech-pill">Groq AI</span>
+  </div>
+</header>
+
+<!-- ════════════ LEGEND ════════════ -->
+<nav class="legend" aria-label="Architecture legend">
+  <div class="legend-item" data-zone="blue"><span class="legend-dot" style="background:var(--blue)"></span> Device Layer</div>
+  <div class="legend-item" data-zone="yellow"><span class="legend-dot" style="background:var(--yellow)"></span> App Layer</div>
+  <div class="legend-item" data-zone="orange"><span class="legend-dot" style="background:var(--orange)"></span> State Management</div>
+  <div class="legend-item" data-zone="green"><span class="legend-dot" style="background:var(--green)"></span> Storage</div>
+  <div class="legend-item" data-zone="purple"><span class="legend-dot" style="background:var(--purple)"></span> External Services</div>
+</nav>
+
+<div class="center-row">
+  <button class="expand-all-btn" onclick="toggleAll()" id="expandAllBtn">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5l5 5 5-5"/></svg>
+    Expand All Zones
+  </button>
+</div>
+
+<!-- ════════════ MAIN CONTAINER ════════════ -->
+<main class="container">
+
+  <!-- ── SVG Flow Lines ── -->
+  <svg class="flow-svg" id="flowSvg" preserveAspectRatio="none">
+    <defs>
+      <filter id="glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+  </svg>
+
+  <!-- ══════ 1. DEVICE LAYER ══════ -->
+  <section class="zone blue expanded" id="zone-device" onclick="toggleZone(this,event)">
+    <div class="zone-header">
+      <div class="zone-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="1" width="12" height="20" rx="2"/><line x1="11" y1="17" x2="11" y2="17.01"/></svg>
+      </div>
+      <span class="zone-title">Device Layer</span>
+      <span class="zone-subtitle">Platform Distribution</span>
+      <button class="zone-toggle" aria-label="Toggle section">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+      </button>
+    </div>
+    <div class="zone-content">
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" fill="currentColor" style="color:var(--text-muted)"><path d="M12.5 2h-9A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14h9a1.5 1.5 0 001.5-1.5v-9A1.5 1.5 0 0012.5 2zM8 12a1 1 0 110-2 1 1 0 010 2zm3-4.5a.5.5 0 01-.5.5h-5a.5.5 0 01-.5-.5v-3a.5.5 0 01.5-.5h5a.5.5 0 01.5.5v3z"/></svg>
+            iOS — App Store
+          </div>
+          <div class="card-desc">Bundle ID: <code style="color:var(--gold)">com.authentichadith.app</code><br>Apple Sign-In + StoreKit 2 integration</div>
+          <span class="card-tag tag-blue">Production</span>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" fill="currentColor" style="color:var(--text-muted)"><path d="M1 8l3-7h8l3 7-3 7H4L1 8zm7-3a3 3 0 100 6 3 3 0 000-6z"/></svg>
+            Android — Play Store
+          </div>
+          <div class="card-desc">Package: <code style="color:var(--gold)">com.authentichadith.app</code><br>Google Play billing (future)</div>
+          <span class="card-tag tag-green">Future</span>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4L4 12"/><circle cx="8" cy="8" r="7"/></svg>
+            EAS Build
+          </div>
+          <div class="card-desc">Three build profiles configured:<br>
+            <span style="color:#4ade80">development</span> &middot;
+            <span style="color:var(--yellow)">preview</span> &middot;
+            <span style="color:#60a5fa">production</span>
+          </div>
+          <span class="card-tag tag-emerald">CI/CD</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 2. APP LAYER ══════ -->
+  <section class="zone yellow" id="zone-app" onclick="toggleZone(this,event)">
+    <div class="zone-header">
+      <div class="zone-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="18" height="16" rx="2"/><path d="M2 8h18"/><circle cx="5" cy="5.5" r=".5" fill="currentColor"/><circle cx="7.5" cy="5.5" r=".5" fill="currentColor"/><circle cx="10" cy="5.5" r=".5" fill="currentColor"/></svg>
+      </div>
+      <span class="zone-title">App Layer</span>
+      <span class="zone-subtitle">Expo Router 6 — File-based Routing &middot; 27 Components</span>
+      <button class="zone-toggle" aria-label="Toggle section">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+      </button>
+    </div>
+    <div class="zone-content">
+
+      <!-- Tabs & Screens -->
+      <div class="sub-section">
+        <div class="sub-section-title" style="color:var(--yellow)">7 Tab Screens <span class="count-badge">7</span></div>
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-title" style="color:var(--gold)">Home</div>
+            <div class="card-desc">index.tsx — Random hadith of the moment with daily refresh</div>
+            <span class="tooltip">Tab 1 — Landing screen</span>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--gold)">Collections</div>
+            <div class="card-desc">collections.tsx — Browse 8 hadith collections (Bukhari, Muslim, etc.)</div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--gold)">Search</div>
+            <div class="card-desc">search.tsx — TruthSerum v2 engine with 35 topic synonyms</div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--gold)">My Hadith</div>
+            <div class="card-desc">my-hadith.tsx — Saved hadiths & user-created folders</div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--gold)">Learn</div>
+            <div class="card-desc">learn.tsx — Structured learning paths & lessons</div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--gold)">Assistant</div>
+            <div class="card-desc">assistant.tsx — AI chat powered by Groq Llama 3.3 70B</div>
+            <span class="card-tag tag-purple">AI</span>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color:var(--gold)">Profile</div>
+            <div class="card-desc">profile.tsx — User profile & account management</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other Routes -->
+      <div class="sub-section">
+        <div class="sub-section-title" style="color:var(--yellow)">Other Routes <span class="count-badge">14</span></div>
+        <div class="two-col">
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--text-muted)">Auth Screens</div>
+            <div class="items-list">
+              <span class="item-chip">login<span class="tooltip">Email + Apple Sign-In</span></span>
+              <span class="item-chip">signup<span class="tooltip">Email registration</span></span>
+              <span class="item-chip">forgot-password<span class="tooltip">Password reset flow</span></span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--text-muted)">Detail Screens</div>
+            <div class="items-list">
+              <span class="item-chip">hadith/[id]<span class="tooltip">Individual hadith view</span></span>
+              <span class="item-chip">collection/[slug]<span class="tooltip">Collection detail with hadiths</span></span>
+              <span class="item-chip">learn/[pathId]<span class="tooltip">Learning path overview</span></span>
+              <span class="item-chip">learn/lesson/[lessonId]<span class="tooltip">Individual lesson content</span></span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--text-muted)">Settings</div>
+            <div class="items-list">
+              <span class="item-chip">settings/index<span class="tooltip">Main settings screen</span></span>
+              <span class="item-chip">settings/about<span class="tooltip">About the app</span></span>
+              <span class="item-chip">settings/appearance<span class="tooltip">Theme toggle</span></span>
+              <span class="item-chip">settings/subscription<span class="tooltip">Premium subscription</span></span>
+              <span class="item-chip">settings/privacy<span class="tooltip">Privacy policy</span></span>
+              <span class="item-chip">settings/delete-account<span class="tooltip">Account deletion</span></span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--text-muted)">Other</div>
+            <div class="items-list">
+              <span class="item-chip">redeem/index<span class="tooltip">Redeem promo codes</span></span>
+              <span class="item-chip">redeem/my-code<span class="tooltip">View user's codes</span></span>
+              <span class="item-chip">my-hadith/create-folder<span class="tooltip">Create new folder</span></span>
+              <span class="item-chip">my-hadith/folder/[id]<span class="tooltip">View folder contents</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Components -->
+      <div class="sub-section">
+        <div class="sub-section-title" style="color:var(--yellow)">Components <span class="count-badge">27</span></div>
+        <div class="two-col">
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--gold)">Hadith</div>
+            <div class="items-list">
+              <span class="item-chip">HadithCard<span class="tooltip">Displays a single hadith with grade badge</span></span>
+              <span class="item-chip">HadithList<span class="tooltip">Scrollable list of hadiths</span></span>
+              <span class="item-chip">GradeBadge<span class="tooltip">Sahih (emerald) / Hasan (gold) / Daif (red)</span></span>
+            </div>
+            <div style="font-size:12px;font-weight:600;margin:10px 0 6px;color:var(--gold)">UI Primitives</div>
+            <div class="items-list">
+              <span class="item-chip">Button</span>
+              <span class="item-chip">Card</span>
+              <span class="item-chip">Input</span>
+              <span class="item-chip">LoadingSpinner</span>
+              <span class="item-chip">Collapsible</span>
+              <span class="item-chip">IconSymbol</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;margin:10px 0 6px;color:var(--gold)">Theme</div>
+            <div class="items-list">
+              <span class="item-chip">ThemedText<span class="tooltip">Theme-aware text component</span></span>
+              <span class="item-chip">ThemedView<span class="tooltip">Theme-aware view container</span></span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--gold)">Premium</div>
+            <div class="items-list">
+              <span class="item-chip">PremiumGate<span class="tooltip">Blocks non-premium users from content</span></span>
+            </div>
+            <div style="font-size:12px;font-weight:600;margin:10px 0 6px;color:var(--gold)">My Hadith</div>
+            <div class="items-list">
+              <span class="item-chip">SaveHadithModal<span class="tooltip">Modal for saving hadith to folders</span></span>
+            </div>
+            <div style="font-size:12px;font-weight:600;margin:10px 0 6px;color:var(--gold)">Settings</div>
+            <div class="items-list">
+              <span class="item-chip">SettingsItem</span>
+              <span class="item-chip">SettingsSection</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;margin:10px 0 6px;color:var(--gold)">Share / Common / Other</div>
+            <div class="items-list">
+              <span class="item-chip">ShareSheet<span class="tooltip">Native share dialog</span></span>
+              <span class="item-chip">ErrorBoundary<span class="tooltip">Catches rendering errors</span></span>
+              <span class="item-chip">ParallaxScrollView</span>
+              <span class="item-chip">ExternalLink</span>
+              <span class="item-chip">HapticTab<span class="tooltip">Tab with haptic feedback</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════ 3. STATE MANAGEMENT ══════ -->
+  <section class="zone orange" id="zone-state" onclick="toggleZone(this,event)">
+    <div class="zone-header">
+      <div class="zone-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 16v4M4.93 4.93l2.83 2.83M14.24 14.24l2.83 2.83M2 12h4M16 12h4M4.93 19.07l2.83-2.83M14.24 7.76l2.83-2.83"/></svg>
+      </div>
+      <span class="zone-title">State Management</span>
+      <span class="zone-subtitle">React Context + TanStack Query</span>
+      <button class="zone-toggle" aria-label="Toggle section">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+      </button>
+    </div>
+    <div class="zone-content">
+      <div class="two-col">
+        <div>
+          <div class="sub-section">
+            <div class="sub-section-title" style="color:var(--orange)">React Context</div>
+            <div class="cards-grid" style="grid-template-columns:1fr">
+              <div class="card">
+                <div class="card-title" style="color:var(--orange)">AuthContext</div>
+                <div class="card-desc">Session management, User object, signIn / signUp / signOut / resetPassword methods</div>
+                <span class="card-tag tag-orange">Global</span>
+              </div>
+              <div class="card">
+                <div class="card-title" style="color:var(--orange)">ThemeContext</div>
+                <div class="card-desc">Light/dark mode state, toggleTheme method, persists to SecureStore</div>
+                <span class="card-tag tag-orange">Global</span>
+              </div>
+            </div>
+          </div>
+          <div class="sub-section">
+            <div class="sub-section-title" style="color:var(--orange)">Custom Hooks <span class="count-badge">6</span></div>
+            <div class="cards-grid" style="grid-template-columns:1fr">
+              <div class="card">
+                <div class="card-desc">
+                  <div style="display:grid;gap:6px">
+                    <div><code style="color:var(--orange)">usePremiumStatus()</code> <span style="color:var(--text-muted)">&mdash; Subscription tier check</span></div>
+                    <div><code style="color:var(--orange)">useSubscription()</code> <span style="color:var(--text-muted)">&mdash; TanStack Query subscription data</span></div>
+                    <div><code style="color:var(--orange)">useMyHadith()</code> <span style="color:var(--text-muted)">&mdash; Folder CRUD operations</span></div>
+                    <div><code style="color:var(--orange)">useColorScheme()</code> <span style="color:var(--text-muted)">&mdash; Platform color scheme</span></div>
+                    <div><code style="color:var(--orange)">useThemeColor()</code> <span style="color:var(--text-muted)">&mdash; Theme-aware colors</span></div>
+                    <div><code style="color:var(--orange)">useDebouncedValue()</code> <span style="color:var(--text-muted)">&mdash; Search debounce</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="sub-section">
+            <div class="sub-section-title" style="color:var(--orange)">TanStack Query (React Query)</div>
+            <div class="card" style="margin-bottom:12px">
+              <div class="card-title" style="color:var(--orange)">Cache Keys</div>
+              <div class="items-list" style="margin-top:8px">
+                <span class="item-chip" style="border-color:rgba(249,115,22,.2)">collections<span class="tooltip">All 8 hadith collections</span></span>
+                <span class="item-chip" style="border-color:rgba(249,115,22,.2)">random-hadith<span class="tooltip">Random hadith for home</span></span>
+                <span class="item-chip" style="border-color:rgba(249,115,22,.2)">folders<span class="tooltip">User's saved folders</span></span>
+                <span class="item-chip" style="border-color:rgba(249,115,22,.2)">subscription<span class="tooltip">Premium subscription status</span></span>
+                <span class="item-chip" style="border-color:rgba(249,115,22,.2)">folder-hadiths<span class="tooltip">Hadiths within a folder</span></span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title" style="color:var(--orange)">Features</div>
+              <div class="card-desc">
+                <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+                  <span>Automatic background refetching</span>
+                  <span>Optimistic updates for mutations</span>
+                  <span>Stale-while-revalidate strategy</span>
+                  <span>Query invalidation on data changes</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 4. STORAGE LAYER ══════ -->
+  <section class="zone green" id="zone-storage" onclick="toggleZone(this,event)">
+    <div class="zone-header">
+      <div class="zone-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="11" cy="5" rx="8" ry="3"/><path d="M3 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M3 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>
+      </div>
+      <span class="zone-title">Storage Layer</span>
+      <span class="zone-subtitle">Remote + Local + Secure</span>
+      <button class="zone-toggle" aria-label="Toggle section">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+      </button>
+    </div>
+    <div class="zone-content">
+      <div class="cards-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+        <!-- Remote -->
+        <div class="card" style="border-left:3px solid var(--emerald-light)">
+          <div class="card-title" style="color:var(--emerald-light)">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="6"/><path d="M2 7h10M7 2c-2 2-2 8 0 10M7 2c2 2 2 8 0 10"/></svg>
+            Remote — Supabase PostgreSQL
+          </div>
+          <div class="card-desc">
+            Shared backend with web application
+          </div>
+          <div class="stat-bar">
+            <div class="stat"><span class="stat-value">31,839</span><span class="stat-label">Hadiths</span></div>
+            <div class="stat"><span class="stat-value">8</span><span class="stat-label">Collections</span></div>
+            <div class="stat"><span class="stat-value">30+</span><span class="stat-label">Tables</span></div>
+          </div>
+          <div class="card-desc" style="margin-top:8px">Auth: email/password + Apple Sign-In<br>RLS policies enforced per user</div>
+          <span class="card-tag tag-green">Primary</span>
+        </div>
+        <!-- Local SQLite -->
+        <div class="card" style="border-left:3px solid #4ade80">
+          <div class="card-title" style="color:#4ade80">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="12" height="10" rx="1"/><path d="M1 7h12"/></svg>
+            Local — SQLite (expo-sqlite)
+          </div>
+          <div class="card-desc">Offline-first caching for disconnected access</div>
+          <div style="margin-top:10px">
+            <div class="items-list">
+              <span class="item-chip" style="border-color:rgba(34,197,94,.2)">cached_hadiths<span class="tooltip">Offline reading cache</span></span>
+              <span class="item-chip" style="border-color:rgba(34,197,94,.2)">cached_folders<span class="tooltip">Offline folder access</span></span>
+              <span class="item-chip" style="border-color:rgba(34,197,94,.2)">cached_saved_hadiths<span class="tooltip">Offline bookmarks</span></span>
+            </div>
+          </div>
+          <div class="card-desc" style="margin-top:6px">Sync manager: top 100 popular hadiths cached automatically</div>
+          <span class="card-tag tag-green">Offline</span>
+        </div>
+        <!-- Secure Store -->
+        <div class="card" style="border-left:3px solid var(--gold)">
+          <div class="card-title" style="color:var(--gold)">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="8" height="7" rx="1"/><path d="M5 6V4a3 3 0 016 0v2"/></svg>
+            Secure Storage — expo-secure-store
+          </div>
+          <div class="card-desc">
+            Encrypted keychain/keystore access
+          </div>
+          <div style="margin-top:10px">
+            <div class="items-list">
+              <span class="item-chip" style="border-color:rgba(197,160,89,.2)">Auth tokens<span class="tooltip">Primary session tokens</span></span>
+              <span class="item-chip" style="border-color:rgba(197,160,89,.2)">Theme preference<span class="tooltip">Light/dark mode setting</span></span>
+            </div>
+          </div>
+          <div class="card-desc" style="margin-top:6px">Falls back to AsyncStorage on unsupported platforms</div>
+          <span class="card-tag tag-gold">Encrypted</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ 5. EXTERNAL SERVICES ══════ -->
+  <section class="zone purple" id="zone-external" onclick="toggleZone(this,event)">
+    <div class="zone-header">
+      <div class="zone-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 10h-4a2 2 0 00-2 2v6"/><path d="M14 16h6"/><circle cx="6" cy="6" r="4"/><path d="M2 18c0-3 2-5 4-5s4 2 4 5"/></svg>
+      </div>
+      <span class="zone-title">External Services</span>
+      <span class="zone-subtitle">Cloud APIs & Platform Services</span>
+      <button class="zone-toggle" aria-label="Toggle section">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+      </button>
+    </div>
+    <div class="zone-content">
+      <div class="cards-grid">
+        <div class="card" style="border-top:2px solid var(--emerald-light)">
+          <div class="card-title" style="color:var(--emerald-light)">Supabase</div>
+          <div class="card-desc">Authentication, PostgreSQL database, Realtime subscriptions, Row-Level Security</div>
+          <span class="card-tag tag-emerald">Backend</span>
+        </div>
+        <div class="card" style="border-top:2px solid #f472b6">
+          <div class="card-title" style="color:#f472b6">RevenueCat</div>
+          <div class="card-desc">In-app purchase management<br>
+            <span style="font-size:10px;color:var(--text-muted)">Products: ah_premium_monthly, ah_premium_annual, ah_lifetime</span>
+          </div>
+          <span class="card-tag tag-purple">Payments</span>
+        </div>
+        <div class="card" style="border-top:2px solid #818cf8">
+          <div class="card-title" style="color:#818cf8">Groq AI</div>
+          <div class="card-desc">LLM inference — Llama 3.3 70B<br>Routed via /api/chat on web backend</div>
+          <span class="card-tag tag-purple">AI</span>
+        </div>
+        <div class="card" style="border-top:2px solid #94a3b8">
+          <div class="card-title" style="color:#94a3b8">Apple Services</div>
+          <div class="card-desc">Sign-In with Apple, App Store Connect, StoreKit 2 for subscriptions</div>
+          <span class="card-tag tag-blue">Platform</span>
+        </div>
+        <div class="card" style="border-top:2px solid #34d399">
+          <div class="card-title" style="color:#34d399">Google Services</div>
+          <div class="card-desc">Play Store distribution, Google Play Billing (future integration)</div>
+          <span class="card-tag tag-green">Future</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ════════════ DATA FLOWS ════════════ -->
+<section class="flows-section">
+  <h2 class="flows-title">Animated Data Flows</h2>
+  <div class="flow-cards">
+
+    <div class="flow-card" onclick="this.classList.toggle('expanded')">
+      <div class="flow-card-title"><span class="flow-num">1</span> Save Hadith Flow</div>
+      <div class="flow-steps">
+        <span class="flow-step">Tap Save</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">SaveHadithModal</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">useSaveHadith()</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Supabase insert</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">SQLite cache</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">TanStack invalidate</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step" style="border-color:var(--emerald);color:var(--emerald-light)">UI update</span>
+      </div>
+      <div class="flow-detail">
+        <p>When a user saves a hadith, the SaveHadithModal presents folder selection. The mutation writes to Supabase, simultaneously caches in SQLite for offline access, then invalidates the TanStack Query cache to trigger a re-render across all affected screens.</p>
+      </div>
+    </div>
+
+    <div class="flow-card" onclick="this.classList.toggle('expanded')">
+      <div class="flow-card-title"><span class="flow-num">2</span> AI Chat Flow</div>
+      <div class="flow-steps">
+        <span class="flow-step">User message</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">groq.ts</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">POST /api/chat</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Groq LLM</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step" style="border-color:var(--purple);color:#c084fc">Response</span>
+      </div>
+      <div class="flow-detail">
+        <p>The AI assistant routes messages through the web backend's /api/chat endpoint, which forwards to Groq's Llama 3.3 70B model. This architecture keeps the API key secure server-side and allows shared rate limiting between web and mobile.</p>
+      </div>
+    </div>
+
+    <div class="flow-card" onclick="this.classList.toggle('expanded')">
+      <div class="flow-card-title"><span class="flow-num">3</span> Purchase Flow</div>
+      <div class="flow-steps">
+        <span class="flow-step">Subscribe tap</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">RevenueCat SDK</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">StoreKit 2</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Purchase</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">syncSubscription()</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step" style="border-color:var(--emerald);color:var(--emerald-light)">profiles update</span>
+      </div>
+      <div class="flow-detail">
+        <p>RevenueCat handles the StoreKit 2 transaction flow. After a successful purchase, syncSubscriptionToSupabase() writes the subscription status to the user's profile in Supabase, ensuring the backend stays in sync with platform billing state.</p>
+      </div>
+    </div>
+
+    <div class="flow-card" onclick="this.classList.toggle('expanded')">
+      <div class="flow-card-title"><span class="flow-num">4</span> Offline Sync Flow</div>
+      <div class="flow-steps">
+        <span class="flow-step">App launch</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">syncPopularHadiths()</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Supabase top 100</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">SQLite cache</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step" style="border-color:#4ade80;color:#4ade80">Offline ready</span>
+      </div>
+      <div class="flow-detail">
+        <p>On each app launch (while online), the sync manager fetches the top 100 most popular hadiths from Supabase and stores them in the local SQLite database. This ensures essential content is available for offline reading.</p>
+      </div>
+    </div>
+
+    <div class="flow-card" onclick="this.classList.toggle('expanded')">
+      <div class="flow-card-title"><span class="flow-num">5</span> Auth Flow</div>
+      <div class="flow-steps">
+        <span class="flow-step">Email / Apple</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Supabase Auth</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">Session token</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step">SecureStore</span><span class="flow-arrow">&rarr;</span>
+        <span class="flow-step" style="border-color:var(--orange);color:var(--orange)">AuthContext</span>
+      </div>
+      <div class="flow-detail">
+        <p>Authentication supports email/password and Apple Sign-In. Supabase issues a session token which is stored in expo-secure-store (encrypted keychain). The AuthContext provider makes the session available throughout the app.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ BOTTOM SECTIONS ════════════ -->
+<div class="bottom-sections">
+
+  <!-- Native Modules -->
+  <div class="bottom-card">
+    <h3 style="color:var(--gold)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="14" height="14" rx="2"/><path d="M6 2v14M2 6h14"/></svg>
+      Native Modules & Plugins
+    </h3>
+    <div style="display:grid;gap:6px">
+      <div class="items-list">
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">expo-router<span class="tooltip">File-based routing</span></span>
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">expo-secure-store<span class="tooltip">Encrypted storage</span></span>
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">expo-sqlite<span class="tooltip">Local SQLite database</span></span>
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">expo-sharing<span class="tooltip">Native share sheet</span></span>
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">expo-splash-screen<span class="tooltip">Splash screen control</span></span>
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">expo-apple-authentication<span class="tooltip">Apple Sign-In</span></span>
+        <span class="item-chip" style="border-color:rgba(168,85,247,.2)">react-native-purchases<span class="tooltip">RevenueCat + StoreKit 2</span></span>
+        <span class="item-chip" style="border-color:rgba(37,99,235,.2)">react-native-reanimated<span class="tooltip">60fps animations</span></span>
+        <span class="item-chip" style="border-color:rgba(37,99,235,.2)">react-native-gesture-handler<span class="tooltip">Native gesture system</span></span>
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">@expo/vector-icons<span class="tooltip">Icon library</span></span>
+        <span class="item-chip" style="border-color:rgba(197,160,89,.2)">expo-symbols<span class="tooltip">SF Symbols on iOS</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Design Tokens -->
+  <div class="bottom-card">
+    <h3 style="color:var(--gold)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="7"/><path d="M9 5v4l3 2"/></svg>
+      Design Tokens
+    </h3>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">Brand Colors</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:20px;height:20px;border-radius:4px;background:#1b5e43;display:block;border:1px solid rgba(255,255,255,.1)"></span>
+          <span style="font-size:11px;color:var(--text-muted)">Emerald #1b5e43</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:20px;height:20px;border-radius:4px;background:#c5a059;display:block;border:1px solid rgba(255,255,255,.1)"></span>
+          <span style="font-size:11px;color:var(--text-muted)">Gold #c5a059</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="width:20px;height:20px;border-radius:4px;background:#f8f6f2;display:block;border:1px solid rgba(255,255,255,.1)"></span>
+          <span style="font-size:11px;color:var(--text-muted)">Marble #f8f6f2</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">Grade Badges</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="card-tag tag-emerald">Sahih</span>
+        <span class="card-tag tag-gold">Hasan</span>
+        <span class="card-tag tag-red">Daif</span>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">Spacing Scale</div>
+      <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">
+        <div style="text-align:center"><div style="width:4px;height:4px;background:var(--gold);border-radius:1px;margin:0 auto 2px"></div><span style="font-size:9px;color:var(--text-muted)">xs 4</span></div>
+        <div style="text-align:center"><div style="width:8px;height:8px;background:var(--gold);border-radius:2px;margin:0 auto 2px"></div><span style="font-size:9px;color:var(--text-muted)">sm 8</span></div>
+        <div style="text-align:center"><div style="width:16px;height:16px;background:var(--gold);border-radius:3px;margin:0 auto 2px;opacity:.8"></div><span style="font-size:9px;color:var(--text-muted)">md 16</span></div>
+        <div style="text-align:center"><div style="width:24px;height:24px;background:var(--gold);border-radius:4px;margin:0 auto 2px;opacity:.6"></div><span style="font-size:9px;color:var(--text-muted)">lg 24</span></div>
+        <div style="text-align:center"><div style="width:32px;height:32px;background:var(--gold);border-radius:5px;margin:0 auto 2px;opacity:.4"></div><span style="font-size:9px;color:var(--text-muted)">xl 32</span></div>
+        <div style="text-align:center"><div style="width:48px;height:48px;background:var(--gold);border-radius:6px;margin:0 auto 2px;opacity:.25"></div><span style="font-size:9px;color:var(--text-muted)">xxl 48</span></div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">Font Sizes</div>
+      <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text-muted)">xs 10</span>
+        <span style="font-size:12px;color:var(--text-muted)">sm 12</span>
+        <span style="font-size:14px;color:var(--text-muted)">md 14</span>
+        <span style="font-size:16px;color:var(--text-muted)">lg 16</span>
+        <span style="font-size:20px;color:var(--text-muted)">xl 20</span>
+        <span style="font-size:24px;color:var(--text-muted)">xxl 24</span>
+        <span style="font-size:28px;color:var(--text-muted)">xxxl 28</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════ FOOTER ════════════ -->
+<footer style="text-align:center;padding:32px 20px;border-top:1px solid rgba(255,255,255,.05);position:relative;z-index:10">
+  <p style="font-size:12px;color:var(--text-muted)">
+    Authentic Hadith &mdash; Mobile Architecture Diagram &middot; Expo SDK 54 &middot; React Native 0.81.5
+  </p>
+  <p style="font-size:11px;color:rgba(255,255,255,.2);margin-top:4px">
+    Built for startup pitch deck presentation
+  </p>
+</footer>
+
+<script>
+// ── Zone toggle ──
+function toggleZone(zone, e) {
+  // Don't toggle if clicking inside expandable content
+  if (e && e.target.closest('.card, .item-chip, .tab-chip, a, code')) return;
+  zone.classList.toggle('expanded');
+  drawFlowLines();
+}
+
+// ── Expand/Collapse All ──
+let allExpanded = false;
+function toggleAll() {
+  allExpanded = !allExpanded;
+  document.querySelectorAll('.zone').forEach(z => {
+    z.classList.toggle('expanded', allExpanded);
+  });
+  const btn = document.getElementById('expandAllBtn');
+  btn.innerHTML = allExpanded
+    ? '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9l5-5 5 5"/></svg> Collapse All Zones'
+    : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 5l5 5 5-5"/></svg> Expand All Zones';
+  drawFlowLines();
+}
+
+// ── Legend highlighting ──
+document.querySelectorAll('.legend-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const color = item.dataset.zone;
+    const zone = document.querySelector('.zone.' + color);
+    if (zone) {
+      zone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      zone.style.transition = 'box-shadow 0.3s';
+      zone.style.boxShadow = `0 0 30px rgba(255,255,255,0.1)`;
+      setTimeout(() => { zone.style.boxShadow = ''; }, 1500);
+      if (!zone.classList.contains('expanded')) {
+        zone.classList.add('expanded');
+        drawFlowLines();
+      }
+    }
+  });
+});
+
+// ── Animated Flow Lines between zones ──
+function drawFlowLines() {
+  const svg = document.getElementById('flowSvg');
+  if (!svg) return;
+  svg.innerHTML = '<defs><filter id="glow"><feGaussianBlur stdDeviation="2" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+
+  const container = document.querySelector('.container');
+  if (!container) return;
+  const cRect = container.getBoundingClientRect();
+
+  const zones = {
+    device: document.getElementById('zone-device'),
+    app: document.getElementById('zone-app'),
+    state: document.getElementById('zone-state'),
+    storage: document.getElementById('zone-storage'),
+    external: document.getElementById('zone-external')
+  };
+
+  const connections = [
+    { from: 'device', to: 'app', cls: 'blue', label: '' },
+    { from: 'app', to: 'state', cls: 'gold', label: '' },
+    { from: 'state', to: 'storage', cls: 'orange', label: '' },
+    { from: 'app', to: 'external', cls: 'purple', label: '' },
+    { from: 'storage', to: 'external', cls: 'emerald', label: '' },
+  ];
+
+  connections.forEach(conn => {
+    const fromEl = zones[conn.from];
+    const toEl = zones[conn.to];
+    if (!fromEl || !toEl) return;
+
+    const fRect = fromEl.getBoundingClientRect();
+    const tRect = toEl.getBoundingClientRect();
+
+    const x1 = fRect.right - cRect.left - 30;
+    const y1 = fRect.bottom - cRect.top;
+    const x2 = tRect.left - cRect.left + 30;
+    const y2 = tRect.top - cRect.top;
+
+    const midY = (y1 + y2) / 2;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`);
+    path.setAttribute('class', 'flow-line ' + conn.cls);
+    path.setAttribute('filter', 'url(#glow)');
+    svg.appendChild(path);
+  });
+}
+
+// ── Initialize ──
+window.addEventListener('load', () => {
+  drawFlowLines();
+  // Stagger zone entry animations
+  document.querySelectorAll('.zone').forEach((z, i) => {
+    z.style.opacity = '0';
+    z.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      z.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      z.style.opacity = '1';
+      z.style.transform = 'translateY(0)';
+    }, 100 + i * 120);
+  });
+});
+
+window.addEventListener('resize', drawFlowLines);
+window.addEventListener('scroll', () => {
+  requestAnimationFrame(drawFlowLines);
+});
+
+// ── Keyboard accessibility ──
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.zone.expanded').forEach(z => z.classList.remove('expanded'));
+    allExpanded = false;
+    drawFlowLines();
+  }
+});
+</script>
+
+</body>
+</html>
