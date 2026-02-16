@@ -1,3 +1,6 @@
+import Constants from 'expo-constants'
+import { API_CONFIG } from '@/lib/supabase/client'
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -7,11 +10,10 @@ export interface ChatMessage {
 
 /**
  * Send a chat message to the AI assistant
- * Note: This uses a relative path '/api/chat' which works with Expo Router's API routes.
- * The path is resolved relative to the app's base URL in web builds.
+ * This calls the web app's mobile-chat API endpoint
  */
 export async function sendChatMessage(messages: ChatMessage[]): Promise<string> {
-  const response = await fetch('/api/chat', {
+  const response = await fetch(`${API_CONFIG.baseUrl}/api/mobile-chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
