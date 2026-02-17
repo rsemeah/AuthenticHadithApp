@@ -13,16 +13,19 @@ interface PaywallScreenProps {
  * Renders the RevenueCat paywall configured in the RevenueCat Dashboard.
  * Make sure to configure a Paywall template in the RevenueCat Dashboard first.
  */
-export function PaywallScreen({ onDismiss, onPurchaseCompleted, onRestoreComplet
-ed }: PaywallScreenProps) {
+export function PaywallScreen({
+  onDismiss,
+  onPurchaseCompleted,
+  onRestoreCompleted,
+}: PaywallScreenProps) {
   return (
     <View style={styles.container}>
       <RevenueCatUI.Paywall
         onDismiss={onDismiss}
-        onPurchaseCompleted={({ customerInfo }) => {
+        onPurchaseCompleted={() => {
           onPurchaseCompleted?.()
         }}
-        onRestoreCompleted={({ customerInfo }) => {
+        onRestoreCompleted={() => {
           onRestoreCompleted?.()
         }}
       />
@@ -32,7 +35,7 @@ ed }: PaywallScreenProps) {
 
 /**
  * Presents the paywall conditionally — only if the user does NOT have
- * the "RedLantern Studios Pro" entitlement.
+ * the Pro entitlement.
  * If the user already has it, `children` are rendered instead.
  */
 export function PaywallGate({ children }: { children: React.ReactNode }) {

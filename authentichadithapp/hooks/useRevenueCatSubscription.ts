@@ -9,20 +9,24 @@ interface PurchaseResult {
 }
 
 export function useRevenueCatSubscription() {
-  const { customerInfo, currentOffering, isPro, isLoading, restorePurchases, ref
-reshCustomerInfo } = useRevenueCat()
+  const {
+    customerInfo,
+    currentOffering,
+    isPro,
+    isLoading,
+    restorePurchases,
+    refreshCustomerInfo,
+  } = useRevenueCat()
   const [purchasing, setPurchasing] = useState(false)
 
-  const purchasePackage = useCallback(async (pkg: PurchasesPackage): Promise<Pur
-chaseResult> => {
+  const purchasePackage = useCallback(async (pkg: PurchasesPackage): Promise<PurchaseResult> => {
     setPurchasing(true)
     try {
       const { customerInfo } = await Purchases.purchasePackage(pkg)
       if (customerInfo.entitlements.active[ENTITLEMENT_ID]?.isActive) {
         return { success: true }
       }
-      return { success: false, error: 'Purchase completed but entitlement not a
-ctive' }
+      return { success: false, error: 'Purchase completed but entitlement not active' }
     } catch (error: any) {
       if (error.userCancelled) {
         return { success: false, error: 'cancelled' }

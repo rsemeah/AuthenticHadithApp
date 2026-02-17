@@ -9,6 +9,10 @@ jobs:
   build_and_submit:
     name: Build and Submit iOS to TestFlight
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: authentichadithapp
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -16,12 +20,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: authentichadithapp/package-lock.json
 
       - name: Install dependencies
-        run: |
-          cd app
-          npm ci
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Lint check
+        run: npm run lint
 
       - name: Install EAS CLI
         run: npm install -g eas-cli
@@ -30,27 +40,26 @@ jobs:
         if: ${{ secrets.APPLE_API_KEY_JSON != '' }}
         run: |
           echo "Writing App Store Connect API key file"
-          echo "${{ secrets.APPLE_API_KEY_JSON }}" > ./appstoreconnect.json
+          echo "${{ secrets.APPLE_API_KEY_JSON }}" > ../appstoreconnect.json
 
       - name: Login to EAS
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
-        run: |
-          eas whoami || true
+        run: eas whoami || true
 
       - name: Build iOS (EAS)
         env:
-          EAS_PROJECT_DIR: app
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
-        run: |
-          eas build -p ios --profile production --non-interactive --output-json
+        run: eas build -p ios --profile production --non-interactive
 
       - name: Submit to TestFlight
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          if [ -f ./appstoreconnect.json ]; then
-            eas submit -p ios --latest --apple-api-key-path ./appstoreconnect.json --non-interactive
+          if [ -f ../appstoreconnect.json ]; then
+            eas submit -p ios --latest --apple-api-key-path ../appstoreconnect.json --non-interactive
           else
-            eas submit -p ios --latest --non-interactive --apple-id "${{ secrets.APPLE_ID }}" --apple-team-id "${{ secrets.APPLE_TEAM_ID }}"
+            eas submit -p ios --latest --non-interactive \
+              --apple-id "${{ secrets.APPLE_ID }}" \
+              --apple-team-id "${{ secrets.APPLE_TEAM_ID }}"
           fi
