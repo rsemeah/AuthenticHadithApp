@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import Purchases from 'react-native-purchases';
 
 import { AuthProvider } from '@/lib/auth/AuthProvider';
+import { REVENUECAT_API_KEY } from '@/lib/revenuecat/config';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
 import { RevenueCatProvider } from '@/lib/revenuecat/RevenueCatProvider';
@@ -48,9 +49,9 @@ function AppContent() {
 
 export default function RootLayout() {
   useEffect(() => {
-    Purchases.configure({
-      apiKey: 'test_gngYicqPNakjsEBKvUwfIlFHrUg',
-    });
+    if (REVENUECAT_API_KEY) {
+      Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+    }
   }, []);
 
   return (

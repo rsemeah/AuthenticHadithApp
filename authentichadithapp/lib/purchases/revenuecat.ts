@@ -2,42 +2,33 @@
  * RevenueCat integration for Apple In-App Purchases.
  *
  * SETUP REQUIRED:
- * 1. Install: npx expo install react-native-purchases
- * 2. Add plugin to app.json: ["react-native-purchases", { "ios": { "usesStoreKi
-t2": true } }]
- * 3. Create products in App Store Connect
- * 4. Configure products in RevenueCat dashboard
- * 5. Set REVENUECAT_API_KEY_IOS in app.json > extra
+ * 1. Install: npx expo install react-native-purchases react-native-purchases-ui
+ * 2. Plugin is already added to app.json
+ * 3. Create products in App Store Connect matching PRODUCT_IDS in lib/revenuecat/config.ts
+ * 4. Configure products + entitlement in RevenueCat dashboard matching ENTITLEMENT_ID
+ * 5. Set EAS secrets REVENUECAT_API_KEY_IOS / REVENUECAT_API_KEY_ANDROID
+ *    then add to app.json extra (see lib/revenuecat/config.ts for the key names)
  *
- * This file provides a clean abstraction over RevenueCat so the rest of
- * the app doesn't import the SDK directly.
+ * This file provides a clean abstraction over the SDK so the rest of the
+ * app doesn't import react-native-purchases directly.
  */
 
 import { Platform } from 'react-native'
 import Constants from 'expo-constants'
+import { ENTITLEMENT_ID, PRODUCT_IDS } from '../revenuecat/config'
 
-// Lazy import — will fail gracefully if SDK not installed yet
+export { ENTITLEMENT_ID, PRODUCT_IDS }
+
+// Lazy import — gracefully disabled if SDK not yet installed
 let Purchases: typeof import('react-native-purchases').default | null = null
-let PurchasesPackageType: any = null
 
 try {
   const mod = require('react-native-purchases')
   Purchases = mod.default
-  PurchasesPackageType = mod.PACKAGE_TYPE
 } catch {
-  // SDK not installed — all functions below will return safe defaults
+  // SDK not installed — all functions below return safe defaults
   console.warn('[RevenueCat] react-native-purchases not installed. IAP disabled.')
 }
-
-// ─── Product identifiers (must match App Store Connect + RevenueCat) ───
-export const PRODUCT_IDS = {
-  MONTHLY_PREMIUM: 'ah_premium_monthly',
-  ANNUAL_PREMIUM: 'ah_premium_annual',
-  LIFETIME: 'ah_lifetime',
-} as const
-
-// ─── Entitlement identifier (configured in RevenueCat dashboard) ───
-export const ENTITLEMENT_ID = 'premium'
 
 // ─── Types ───
 export type SubscriptionStatus = {
@@ -53,9 +44,10 @@ let isConfigured = false
 export async function configureRevenueCat(supabaseUserId?: string): Promise<void> {
   if (!Purchases || isConfigured) return
 
+  const extra = Constants.expoConfig?.extra ?? {}
   const apiKey = Platform.select({
-    ios: Constants.expoConfig?.extra?.revenueCatApiKeyIos,
-    android: Constants.expoConfig?.extra?.revenueCatApiKeyAndroid,
+    ios: extra.revenueCatApiKeyIos,
+    android: extra.revenueCatApiKeyAndroid,
   })
 
   if (!apiKey) {
@@ -128,12 +120,12 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
 
     if (!entitlement) return defaultStatus
 
-    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.LIFETIME
+    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.lifetime
     return {
       isActive: true,
       tier: isLifetime ? 'lifetime' : 'premium',
       expiresAt: entitlement.expirationDate,
-      willRenew: !entitlement.willRenew ? false : entitlement.willRenew,
+      willRenew: entitlement.willRenew ?? false,
     }
   } catch (err) {
     console.error('[RevenueCat] Failed to get status:', err)
@@ -141,7 +133,7 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
   }
 }
 
-// ─── Restore purchases (Apple requires this) ───
+// ─── Restore purchases (Apple requires this button in the app) ───
 export async function restorePurchases(): Promise<SubscriptionStatus> {
   const defaultStatus: SubscriptionStatus = {
     isActive: false,
@@ -158,12 +150,12 @@ export async function restorePurchases(): Promise<SubscriptionStatus> {
 
     if (!entitlement) return defaultStatus
 
-    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.LIFETIME
+    const isLifetime = entitlement.productIdentifier === PRODUCT_IDS.lifetime
     return {
       isActive: true,
       tier: isLifetime ? 'lifetime' : 'premium',
       expiresAt: entitlement.expirationDate,
-      willRenew: !entitlement.willRenew ? false : entitlement.willRenew,
+      willRenew: entitlement.willRenew ?? false,
     }
   } catch (err) {
     console.error('[RevenueCat] Restore error:', err)
