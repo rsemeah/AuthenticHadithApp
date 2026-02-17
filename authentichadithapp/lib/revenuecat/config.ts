@@ -7,44 +7,35 @@ const extra = Constants.expoConfig?.extra ?? {}
  * Platform-specific RevenueCat API keys.
  * iOS keys start with "appl_", Android keys start with "goog_".
  *
- * Set these as EAS secrets and expose them in app.json > extra:
- *   eas secret:create --scope project --name REVENUECAT_API_KEY_IOS --value appl_...
- *   eas secret:create --scope project --name REVENUECAT_API_KEY_ANDROID --value goog_...
- * Then reference them in app.json extra:
- *   "revenueCatApiKeyIos":     "$REVENUECAT_API_KEY_IOS",
- *   "revenueCatApiKeyAndroid": "$REVENUECAT_API_KEY_ANDROID"
+ * Set these as EAS secrets, then expose them in app.json > extra:
+ *   eas secret:create --scope project --name REVENUECAT_API_KEY_APPLE --value appl_...
+ *   eas secret:create --scope project --name REVENUECAT_API_KEY_GOOGLE --value goog_...
+ * app.json extra:
+ *   "revenueCatApiKeyApple":  "$REVENUECAT_API_KEY_APPLE",
+ *   "revenueCatApiKeyGoogle": "$REVENUECAT_API_KEY_GOOGLE"
+ *
+ * Key names intentionally match expo-wrapper/providers/RevenueCatProvider.tsx
+ * in the v0 web repo so both apps share the same EAS secret names.
  */
 export const REVENUECAT_API_KEY: string = Platform.select({
-  ios: extra.revenueCatApiKeyIos ?? '',
-  android: extra.revenueCatApiKeyAndroid ?? '',
+  ios: extra.revenueCatApiKeyApple ?? '',
+  android: extra.revenueCatApiKeyGoogle ?? '',
   default: '',
 }) as string
 
 /**
- * The entitlement identifier created in the RevenueCat dashboard.
- * Must match exactly — copy/paste from dashboard > Entitlements.
+ * Entitlement identifier — must match RevenueCat dashboard > Entitlements exactly.
+ * Configurable via app.json extra.revenueCatEntitlementId (mirrors v0 expo-wrapper).
  */
-export const ENTITLEMENT_ID = 'premium'
+export const ENTITLEMENT_ID: string =
+  extra.revenueCatEntitlementId ?? 'RedLantern Studios Pro'
 
 /**
- * App Store Connect / Google Play product identifiers.
- * Must match exactly what is configured in both stores and in the
- * RevenueCat dashboard under Products.
+ * Product identifiers — must match App Store Connect + RevenueCat dashboard Products.
+ * These match the revenuecatProductId values defined in v0/lib/products.ts.
  */
 export const PRODUCT_IDS = {
-  monthly: Platform.select({
-    ios: 'ah_premium_monthly',
-    android: 'ah_premium_monthly',
-    default: 'ah_premium_monthly',
-  }) as string,
-  yearly: Platform.select({
-    ios: 'ah_premium_annual',
-    android: 'ah_premium_annual',
-    default: 'ah_premium_annual',
-  }) as string,
-  lifetime: Platform.select({
-    ios: 'ah_lifetime',
-    android: 'ah_lifetime',
-    default: 'ah_lifetime',
-  }) as string,
-}
+  monthly:  'ah_monthly_999',
+  yearly:   'ah_annual_4999',
+  lifetime: 'ah_lifetime_9999',
+} as const

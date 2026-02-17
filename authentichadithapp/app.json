@@ -68,8 +68,9 @@
       },
       "supabaseUrl": "https://nqklipakrfuwebkdnhwg.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xa2xpcGFrcmZ1d2Via2RuaHdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODA3NDUsImV4cCI6MjA4Mzg1Njc0NX0.yhIe3hqiLlyF8atvSmNOL3HBq91V9Frw5jYcat-sZxY",
-      "revenueCatApiKeyIos": "$REVENUECAT_API_KEY_IOS",
-      "revenueCatApiKeyAndroid": "$REVENUECAT_API_KEY_ANDROID",
+      "revenueCatApiKeyApple": "$REVENUECAT_API_KEY_APPLE",
+      "revenueCatApiKeyGoogle": "$REVENUECAT_API_KEY_GOOGLE",
+      "revenueCatEntitlementId": "$REVENUECAT_ENTITLEMENT_ID",
       "eas": {
         "projectId": "66afcbbf-55c3-48fb-9bf1-29efc52d09eb"
       }
