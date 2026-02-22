@@ -1,381 +1,205 @@
 # Authentic Hadith — Mobile App + Web Platform
 
-> A cross-platform Islamic hadith application — React Native mobile app with a Next.js web platform — providing access to 36,000+ authenticated hadiths from 8 major collections.
+> A cross-platform Islamic hadith application — Expo WebView wrapper for mobile + Next.js web platform — providing access to 36,000+ authenticated hadiths from 8 major collections.
 
 ---
 
 ## Overview
 
-**Authentic Hadith** is a full-stack Islamic education platform. This monorepo contains:
+**Authentic Hadith** is a full-stack Islamic education platform. The mobile app ships as a **WebView wrapper** around the deployed Next.js web app, giving users the full feature set on day one with native in-app purchases via RevenueCat.
+
+### Repository Layout
 
 | Directory | What It Is |
 |---|---|
-| **`authentichadithapp/`** | React Native / Expo mobile app (iOS + Android) |
-| **`external/v0-authentic-hadith/`** | Next.js web platform (mirrored from v0.dev) |
-
-Both apps share the same **Supabase backend** and **hadith dataset**, but each has platform-specific features, payments, and UX patterns.
+| **`authentichadithapp/`** | React Native / Expo native app (future incremental native screens) |
+| **`.github/workflows/`** | CI/CD for EAS Build & Submit (iOS + Android) |
 
 ### Related Repository
 
 | Repository | Purpose |
 |---|---|
-| **[AuthenticHadithApp](https://github.com/rsemeah/AuthenticHadithApp)** (this repo) | Mobile app + web platform mirror |
-| **[v0-authentic-hadith](https://github.com/rsemeah/v0-authentic-hadith)** | The v0.dev source of truth for the web platform |
+| **[v0-authentic-hadith](https://github.com/rsemeah/v0-authentic-hadith)** | Next.js web app (source of truth) + `expo-wrapper/` (the production mobile shell) |
 
-> The web code in `external/v0-authentic-hadith/` is kept in sync with the standalone [v0-authentic-hadith](https://github.com/rsemeah/v0-authentic-hadith) repo, which is the canonical source built in v0.dev.
+> **App Store builds** are produced from `v0-authentic-hadith/expo-wrapper/`. The CI workflows in this repo check out that code automatically.
 
 ---
 
-## What's Been Built — Full Platform
+## App Store Strategy (Option A: WebView Wrapper)
 
-### Hadith Content (Shared)
-- **8 major hadith collections** — Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Jami at-Tirmidhi, Sunan an-Nasai, Sunan Ibn Majah, Muwatta Malik, Musnad Ahmad
-- **36,246 authenticated hadiths** with full Arabic + English text
-- **Authentication grades** — Sahih, Hasan, Da'if per hadith
-- **Narrator chains** and source references
+The mobile app wraps the full Next.js web app (`v0-authentic-hadith.vercel.app`) in a native Expo shell. This gives immediate feature parity with the web while adding native in-app purchases.
+
+```
+┌─────────────────────────────────┐
+│  Expo Native Shell              │
+│  ┌───────────────────────────┐  │
+│  │  RevenueCat Provider      │  │
+│  │  ┌─────────────────────┐  │  │
+│  │  │  WebView             │  │  │
+│  │  │  ┌─────────────────┐ │  │  │
+│  │  │  │  Next.js Web App │ │  │  │
+│  │  │  │  (all features)  │ │  │  │
+│  │  │  └─────────────────┘ │  │  │
+│  │  └─────────────────────┘  │  │
+│  └───────────────────────────┘  │
+└─────────────────────────────────┘
+```
+
+**How it works:**
+1. The Expo app renders a full-screen WebView pointing to the deployed web app
+2. The web app detects it's inside a native shell via `window.__IS_NATIVE_APP__`
+3. When the user hits a paywall, the web app calls `showNativePaywall()` from `lib/native-bridge.ts`
+4. The native shell presents RevenueCat's native paywall UI
+5. Purchase results are communicated back via `CustomEvent`
+6. User auth is synced between Supabase (web) and RevenueCat (native)
+
+**Why this approach:**
+- Immediate feature parity — all 40+ pages, gamification, stories, quizzes, AI assistant
+- Single codebase to maintain (the web app)
+- Native payments satisfy Apple/Google IAP requirements
+- Can incrementally replace WebView screens with native screens over time
+
+---
+
+## Features (Full Platform)
+
+### Hadith Content
+- **8 major collections** — Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Jami at-Tirmidhi, Sunan an-Nasai, Sunan Ibn Majah, Muwatta Malik, Musnad Ahmad
+- **36,246 authenticated hadiths** with Arabic + English text
+- **Authentication grades** — Sahih, Hasan, Da'if with color coding
 - **Hierarchical browsing** — Collection > Book > Chapter > Hadith
+- **Full-text search** with tag faceting
 
-### AI Assistant (Shared)
-- **Groq Llama 3.3 70B** with streaming responses via Vercel AI SDK
-- Islamic scholar context with personalized responses
-- Available on both platforms (premium-gated on mobile, quota-managed on web)
+### AI & Learning
+- **AI Chat Assistant** — GPT-4o-mini with hadith database search tool
+- **On-demand AI summarization** — bilingual scholarly analysis per hadith
+- **Structured learning paths** — Beginner to Advanced with lessons and quizzes
+- **AI-generated quizzes** — narrator, collection, grade, and completion questions
+- **Stories** — Sahaba companions and 25 Quranic Prophets with progress tracking
+- **365 daily Sunnah practices** organized by category
 
-### Learning (Shared)
-- **Learning paths** — Beginner, Intermediate, Advanced, Scholar levels
-- Structured lessons with related hadiths and progress tracking
+### Personal & Social
+- **Daily hadith** — deterministic Sahih-graded selection
+- **Bookmarks & folders** — personal library with notes
+- **Shareable hadith cards** — 4 themes x 3 sizes, downloadable PNG
+- **Discussion threads** — comments with likes/replies on hadiths
+- **Private reflection journal** — with hadith references and tags
+- **Gamification** — XP, levels, achievements, streaks
 
----
-
-## What's Different: Mobile vs Web
-
-### Mobile App (`authentichadithapp/`)
-
-| Feature | Details |
-|---|---|
-| **Offline mode** | SQLite caching of viewed hadiths, folders, and saves — works fully offline with background sync |
-| **TruthSerum v2 search** | Smart search with synonym expansion across 35 Islamic topics (Prayer, Fasting, Charity, etc.) |
-| **Folder system** | Create custom folders with emojis, colors, and privacy settings (Public / Private / Unlisted) |
-| **Collaboration** | Share folders with roles — Viewer, Contributor, Editor — with comments and mentions |
-| **RevenueCat payments** | In-app purchases for iOS and Android via RevenueCat SDK |
-| **Promo codes** | Referral codes and campaign codes with QR generation for premium access |
-| **Push notifications** | Daily hadith reminders via Expo Notifications |
-| **Guest mode** | Browse without creating an account |
-| **Secure storage** | Auth tokens stored in Expo SecureStore |
-| **6-tab navigation** | Home, Search, Collections, Learn, Assistant, My Hadith |
-
-### Web Platform (`external/v0-authentic-hadith/`)
-
-| Feature | Details |
-|---|---|
-| **Stories** | Prophet and Companion narrative content with dedicated pages |
-| **Sunnah practices** | Daily sunnah actions with source references |
-| **Daily Hadith page** | Dedicated `/today` route with reflection prompts and sunnah of the day |
-| **Knowledge quizzes** | General and AI-generated quizzes — narrator, collection, grade, completion questions |
-| **Gamification** | XP system, achievements, badges, streaks, and leaderboards |
-| **Progress dashboard** | Reading statistics and engagement metrics |
-| **Stripe billing** | Three tiers — Explorer (free), Premium ($9.99/mo or $49.99/yr), Lifetime ($99.99) |
-| **Share links** | Token-based public hadith URLs |
-| **Onboarding wizard** | Guided setup for new users |
-| **v0.dev sync** | Auto-pushed from v0.app to the standalone repo and mirrored here |
-
-### Side-by-Side Comparison
-
-| Capability | Mobile | Web |
-|---|---|---|
-| **Browse collections** | Tab-based | Sidebar + pages |
-| **Search** | TruthSerum v2 (35-topic synonyms) | Advanced filters (keyword, narrator, topic, number) |
-| **AI assistant** | Premium only | Quota-based (free: 3/day) |
-| **Save hadiths** | Folders with emojis, colors, notes, tags | Bookmarks + saved collections |
-| **Collaboration** | Folder sharing with roles + comments | Share via token links |
-| **Offline** | Full SQLite caching + sync | Online only |
-| **Payments** | RevenueCat (in-app purchase) | Stripe (web checkout) |
-| **Gamification** | -- | XP, achievements, streaks, leaderboard |
-| **Quizzes** | -- | General + AI-generated |
-| **Stories & Sunnah** | -- | Prophet stories, companion stories, daily sunnah |
-| **Notifications** | Push notifications | -- |
-| **Dark mode** | System theme | Toggle-based |
+### Payments
+- **Web** — Stripe (Explorer free, Pro $9.99/mo or $49.99/yr, Founding $99.99 lifetime)
+- **Mobile** — RevenueCat (native iOS/Android in-app purchases)
+- **Quota system** — tiered daily/monthly AI limits by plan
 
 ---
 
 ## Tech Stack
 
-### Mobile App
-
 | Layer | Technology |
 |---|---|
-| **Framework** | React Native 0.81.5 |
-| **Build** | Expo SDK 54 |
-| **Routing** | Expo Router 6 (file-based) |
-| **Language** | TypeScript (strict) |
-| **Backend** | Supabase 2.39 |
-| **Auth** | Supabase Auth + Expo SecureStore |
-| **Offline** | SQLite (expo-sqlite) |
-| **State** | TanStack React Query 5.17 |
-| **Payments** | RevenueCat |
-| **Notifications** | Expo Notifications |
-| **AI** | Groq Llama 3.3 70B via Vercel AI SDK |
-
-### Web Platform
-
-| Layer | Technology |
-|---|---|
-| **Framework** | Next.js 16 (App Router) |
-| **UI** | React 19, Tailwind CSS 4, Radix UI, shadcn/ui |
-| **Language** | TypeScript (strict) |
-| **Backend** | Supabase (PostgreSQL + RLS) |
-| **Auth** | Supabase Auth (cookies) |
-| **State** | TanStack React Query 5, SWR |
-| **Payments** | Stripe |
-| **AI** | Groq Llama 3.3 70B, Vercel AI SDK |
-| **Charts** | Recharts |
-| **Deployment** | Vercel |
-| **Build Tool** | v0.app |
-
----
-
-## Project Structure
-
-```
-AuthenticHadithApp/
-│
-├── authentichadithapp/              # MOBILE APP (React Native / Expo)
-│   ├── app/                         # Expo Router screens
-│   │   ├── _layout.tsx              # Root layout with providers
-│   │   ├── (tabs)/                  # 6-tab navigation
-│   │   │   ├── index.tsx            # Home — random hadith
-│   │   │   ├── search.tsx           # TruthSerum v2 search
-│   │   │   ├── collections.tsx      # Browse 8 collections
-│   │   │   ├── learn.tsx            # Learning paths
-│   │   │   ├── assistant.tsx        # AI chat (premium)
-│   │   │   └── my-hadith.tsx        # Saved folders
-│   │   ├── auth/                    # Login, signup, reset
-│   │   ├── hadith/[id].tsx          # Hadith detail
-│   │   ├── my-hadith/               # Folder management
-│   │   ├── settings/                # Preferences
-│   │   └── redeem/                  # Promo code entry
-│   ├── components/
-│   │   ├── hadith/                  # HadithCard, HadithList, GradeBadge
-│   │   ├── ui/                      # Button, Card, Input, LoadingSpinner
-│   │   ├── premium/                 # PaywallScreen, PremiumGate
-│   │   ├── my-hadith/               # SaveHadithModal, folder UI
-│   │   ├── share/                   # ShareSheet
-│   │   └── common/                  # ErrorBoundary
-│   ├── lib/
-│   │   ├── supabase/                # Supabase client (SecureStore)
-│   │   ├── auth/                    # AuthProvider + hooks
-│   │   ├── search/topics.ts         # TruthSerum v2 (35 topics)
-│   │   ├── offline/                 # SQLite cache + sync manager
-│   │   ├── api/                     # Groq chat, folder operations
-│   │   ├── premium/                 # Subscription check
-│   │   ├── revenuecat/              # RevenueCat integration
-│   │   ├── styles/colors.ts         # Design tokens
-│   │   └── theme/                   # Theme provider
-│   ├── hooks/                       # useMyHadith, usePremiumStatus, etc.
-│   ├── types/                       # hadith.ts, my-hadith.ts
-│   ├── supabase/migrations/         # Mobile-specific DB migrations
-│   ├── app.json                     # Expo config
-│   └── eas.json                     # EAS Build profiles
-│
-├── external/
-│   └── v0-authentic-hadith/         # WEB PLATFORM (Next.js — mirror)
-│       ├── app/                     # 43 App Router pages
-│       │   ├── collections/         # Collection browser
-│       │   ├── hadith/[id]/         # Hadith detail
-│       │   ├── search/              # Advanced search
-│       │   ├── today/               # Daily hadith
-│       │   ├── stories/             # Prophet & companion stories
-│       │   ├── sunnah/              # Sunnah practices
-│       │   ├── quiz/                # Knowledge quizzes
-│       │   ├── learn/               # Learning paths
-│       │   ├── assistant/           # AI chatbot
-│       │   ├── pricing/             # Subscription tiers
-│       │   └── api/                 # 11+ API routes
-│       ├── components/              # shadcn/Radix components
-│       ├── lib/                     # Supabase, utils, products
-│       └── supabase/migrations/     # Web DB migrations
-│
-└── scripts/                         # Build utilities
-```
-
----
-
-## Design System
-
-Both platforms share a cohesive visual identity:
-
-### Color Palette
-
-| Token | Hex | Usage |
-|---|---|---|
-| Emerald Primary | `#1b5e43` | Brand, headers, primary actions |
-| Emerald Dark | `#0a2a1f` | Dark backgrounds, depth |
-| Gold Accent | `#c5a059` | Highlights, premium badges |
-| Gold Light | `#e8c77d` | Hover states, emphasis |
-| Marble Base | `#f8f6f2` | Background |
-| Marble Vein | `#d4cfc7` | Borders, dividers |
-
-### Typography
-- **Headings** — Cinzel (web), System (mobile)
-- **Body** — Geist (web), System (mobile)
-- **Arabic** — System fonts with RTL support
-
----
-
-## Database
-
-Shared Supabase PostgreSQL backend with Row Level Security.
-
-### Core Tables (Both Platforms)
-- **`hadiths`** — Arabic text, English translation, grade, narrator, reference
-- **`collections`** / **`books`** / **`chapters`** — Hierarchical organization
-- **`profiles`** — User data, subscription info
-- **`saved_hadiths`** — Bookmarks with notes, highlights, tags
-- **`learning_paths`** / **`lessons`** / **`user_lesson_progress`** — Learning
-- **`ai_usage`** / **`tier_quotas`** — Quota management
-
-### Mobile-Specific Tables
-- **`hadith_folders`** — Custom folders with icons, colors, privacy
-- **`folder_collaborators`** — Sharing with Viewer / Contributor / Editor roles
-- **`folder_comments`** — Comments with user mentions
-- **`promo_codes`** / **`redemptions`** — Referral and campaign codes
-
-### Web-Specific Tables
-- **`quiz_attempts`** — Quiz history and scores
-- **`user_streaks`** — Consecutive usage tracking
-- **`sunnah_practices`** — Daily sunnah content
-- **`stripe_events`** — Webhook idempotency
-
----
-
-## Environment Variables
-
-### Mobile App (`authentichadithapp/.env`)
-
-```bash
-EXPO_PUBLIC_SUPABASE_URL=
-EXPO_PUBLIC_SUPABASE_ANON_KEY=
-EXPO_PUBLIC_GROQ_API_KEY=
-EXPO_PUBLIC_APP_ENV=development
-```
-
-### Web Platform (`external/v0-authentic-hadith/.env.local`)
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-NEXT_PUBLIC_APP_URL=
-GROQ_API_KEY=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-NEXT_PUBLIC_BRONZE_PRICE_ID=
-NEXT_PUBLIC_SILVER_PRICE_ID=
-NEXT_PUBLIC_GOLD_PRICE_ID=
-```
+| **Web Framework** | Next.js 16 (App Router, React 19) |
+| **Mobile Shell** | Expo SDK 52, React Native WebView |
+| **Language** | TypeScript |
+| **UI** | Tailwind CSS 4, shadcn/ui, Radix UI |
+| **Backend** | Supabase (PostgreSQL + Auth + RLS) |
+| **AI** | OpenAI GPT-4o-mini via Vercel AI SDK |
+| **Web Payments** | Stripe |
+| **Mobile Payments** | RevenueCat |
+| **Deployment** | Vercel (web), EAS Build (mobile) |
 
 ---
 
 ## Getting Started
 
-### Mobile App
+### Prerequisites
+
+- Node.js 20+
+- EAS CLI: `npm install -g eas-cli`
+- Expo account: `eas login`
+
+### Local Development
 
 ```bash
-cd AuthenticHadithApp/authentichadithapp
+# Clone the WebView wrapper source
+git clone https://github.com/rsemeah/v0-authentic-hadith.git
+cd v0-authentic-hadith/expo-wrapper
 
 # Install dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env
-
-# Start Expo dev server
+# Start dev server (opens in Expo Go or dev client)
 npx expo start
-
-# Run on platforms
-npx expo start --ios
-npx expo start --android
 ```
+
+### Building for Stores
+
+See the full submission guide at [`v0-authentic-hadith/expo-wrapper/STORE_SUBMISSION.md`](https://github.com/rsemeah/v0-authentic-hadith/blob/main/expo-wrapper/STORE_SUBMISSION.md).
+
+```bash
+cd v0-authentic-hadith/expo-wrapper
+
+# Development build (simulator)
+eas build --profile development --platform ios
+
+# Production build
+eas build --profile production --platform ios
+eas build --profile production --platform android
+
+# Submit to stores
+eas submit --platform ios --latest
+eas submit --platform android --latest
+```
+
+---
+
+## CI/CD
+
+GitHub Actions workflows in `.github/workflows/` handle automated builds:
+
+| Workflow | Trigger | What It Does |
+|---|---|---|
+| `eas-ios.yml` | Push to main / manual | Builds iOS via EAS, submits to TestFlight |
+| `eas-android.yml` | Push to main / manual | Builds Android via EAS, submits to Play Store |
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|---|---|
+| `EAS_TOKEN` | Expo access token for EAS CLI |
+| `REVENUECAT_API_KEY_APPLE` | Production RevenueCat Apple API key |
+| `REVENUECAT_API_KEY_GOOGLE` | Production RevenueCat Google API key |
+| `APPLE_API_KEY_JSON` | App Store Connect API key JSON (for iOS submission) |
+| `APPLE_ID` | Apple ID email (fallback if no API key JSON) |
+| `APPLE_TEAM_ID` | Apple Developer Team ID (fallback) |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY` | Google Play service account JSON (for Android submission) |
+
+---
+
+## Environment Variables
+
+### Mobile Wrapper (app.json extra)
+
+Configured in `v0-authentic-hadith/expo-wrapper/app.json`:
+
+| Key | Description |
+|---|---|
+| `webAppUrl` | Deployed web app URL (`https://v0-authentic-hadith.vercel.app`) |
+| `revenueCatApiKeyApple` | RevenueCat Apple API key |
+| `revenueCatApiKeyGoogle` | RevenueCat Google API key |
+| `revenueCatEntitlementId` | RevenueCat entitlement name (`RedLantern Studios Pro`) |
 
 ### Web Platform
 
-```bash
-cd AuthenticHadithApp/external/v0-authentic-hadith
-
-# Install dependencies
-pnpm install
-
-# Set up environment variables
-cp .env.example .env.local
-
-# Start dev server
-pnpm dev
-```
-
-### Building for Production
-
-```bash
-# Mobile — EAS Build
-cd authentichadithapp
-npx eas build --platform ios --profile production
-npx eas build --platform android --profile production
-
-# Submit to stores
-npx eas submit --platform ios
-npx eas submit --platform android
-
-# Web — Vercel (auto-deploys from v0-authentic-hadith repo)
-```
-
----
-
-## iOS App Store Submission
-
-Submit **only the mobile app** (`authentichadithapp/`) via Expo/Xcode:
-
-- Submit: React Native / Expo iOS build from `authentichadithapp/`
-- Do not submit: Next.js web app source in `external/v0-authentic-hadith/`
-
-The web app and mobile app share APIs and data, but Apple submission artifacts must come from the native mobile build only.
-
----
-
-## Architecture
-
-```
-                    ┌─────────────────────────┐
-                    │       Supabase           │
-                    │  PostgreSQL + Auth + RLS  │
-                    └────────────┬────────────┘
-                                 │
-                 ┌───────────────┼───────────────┐
-                 │                               │
-      ┌──────────▼──────────┐        ┌───────────▼───────────┐
-      │    Mobile App        │        │    Web Platform         │
-      │  React Native/Expo   │        │    Next.js 16           │
-      │                      │        │                         │
-      │  - SQLite offline    │        │  - Stripe payments      │
-      │  - RevenueCat        │        │  - Gamification / XP    │
-      │  - Push notifs       │        │  - Quizzes              │
-      │  - Folder collab     │        │  - Stories & Sunnah     │
-      │  - TruthSerum v2     │        │  - Share links          │
-      │  - Promo codes       │        │  - v0.dev built         │
-      └─────────────────────┘        └─────────────────────────┘
-                                               │
-                                      ┌────────▼────────┐
-                                      │  Groq Llama 3.3  │
-                                      │  (AI Assistant)   │
-                                      └─────────────────┘
-```
+See the web app's own `.env.example` in the v0-authentic-hadith repo.
 
 ---
 
 ## Acknowledgments
 
-- **Hadith Data** — [fawazahmed0/hadith-api](https://github.com/fawazahmed0/hadith-api)
+- **Hadith Data** — [fawazahmed0/hadith-api](https://github.com/fawazahmed0/hadith-api) and [sunnah.com](https://sunnah.com)
 - **UI Components** — [shadcn/ui](https://ui.shadcn.com), [Radix UI](https://www.radix-ui.com)
-- **AI Provider** — [Groq](https://groq.com)
-- **Icons** — [Lucide](https://lucide.dev), [Expo Vector Icons](https://icons.expo.fyi)
+- **AI** — [OpenAI](https://openai.com), [Groq](https://groq.com)
+- **Icons** — [Lucide](https://lucide.dev)
 
 ---
 

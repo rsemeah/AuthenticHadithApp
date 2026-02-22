@@ -1,4 +1,4 @@
-name: EAS iOS Build & Submit
+name: EAS Android Build & Submit
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
 
 jobs:
   build_and_submit:
-    name: Build and Submit iOS to TestFlight
-    runs-on: macos-latest
+    name: Build and Submit Android to Play Store
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./v0-authentic-hadith/expo-wrapper
@@ -34,15 +34,8 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli
 
-      - name: Configure App Store Connect API key
-        if: ${{ secrets.APPLE_API_KEY_JSON != '' }}
-        run: |
-          echo "Writing App Store Connect API key file"
-          echo '${{ secrets.APPLE_API_KEY_JSON }}' > ./appstoreconnect.json
-
       - name: Set RevenueCat API keys
         run: |
-          # Update app.json with production RevenueCat keys from secrets
           node -e "
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
@@ -58,22 +51,22 @@ jobs:
           REVENUECAT_API_KEY_APPLE: ${{ secrets.REVENUECAT_API_KEY_APPLE }}
           REVENUECAT_API_KEY_GOOGLE: ${{ secrets.REVENUECAT_API_KEY_GOOGLE }}
 
+      - name: Write Google Play service account key
+        if: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY != '' }}
+        run: echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}' > ./google-play-key.json
+
       - name: Login to EAS
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: eas whoami || true
 
-      - name: Build iOS (EAS)
+      - name: Build Android (EAS)
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
-        run: eas build -p ios --profile production --non-interactive
+        run: eas build -p android --profile production --non-interactive
 
-      - name: Submit to TestFlight
+      - name: Submit to Google Play
+        if: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY != '' }}
         env:
           EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
-        run: |
-          if [ -f ./appstoreconnect.json ]; then
-            eas submit -p ios --latest --apple-api-key-path ./appstoreconnect.json --non-interactive
-          else
-            eas submit -p ios --latest --non-interactive --apple-id "${{ secrets.APPLE_ID }}" --apple-team-id "${{ secrets.APPLE_TEAM_ID }}"
-          fi
+        run: eas submit -p android --latest --non-interactive
