@@ -38,6 +38,13 @@ function AppContent() {
         <Stack.Screen name="redeem" options={{ headerShown: false }} />
         <Stack.Screen name="my-hadith" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="progress" options={{ headerShown: false }} />
+        <Stack.Screen name="achievements" options={{ headerShown: false }} />
+        <Stack.Screen name="quiz" options={{ headerShown: false }} />
+        <Stack.Screen name="stories" options={{ headerShown: false }} />
+        <Stack.Screen name="sunnah" options={{ headerShown: false }} />
+        <Stack.Screen name="reflections" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
