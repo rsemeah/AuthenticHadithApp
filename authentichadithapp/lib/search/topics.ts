@@ -54,12 +54,28 @@ export function expandSearchQuery(query: string): string[] {
 
 export function detectTopic(query: string): string | null {
   const lowerQuery = query.toLowerCase()
-  
+
   for (const [topic, synonyms] of Object.entries(TOPIC_SYNONYMS)) {
     if (lowerQuery.includes(topic) || synonyms.some(syn => lowerQuery.includes(syn.toLowerCase()))) {
       return topic
     }
   }
-  
+
   return null
+}
+
+/**
+ * Returns up to 4 search terms: the original query, canonical topic (if found),
+ * and two key synonyms. Keeps OR conditions manageable in Supabase queries.
+ */
+export function getSearchTerms(query: string): string[] {
+  const terms: string[] = [query]
+  const topic = detectTopic(query)
+  if (topic) {
+    if (topic.toLowerCase() !== query.toLowerCase()) terms.push(topic)
+    const synonyms = TOPIC_SYNONYMS[topic] || []
+    if (synonyms[0] && !terms.includes(synonyms[0])) terms.push(synonyms[0])
+    if (synonyms[1] && !terms.includes(synonyms[1])) terms.push(synonyms[1])
+  }
+  return [...new Set(terms)]
 }

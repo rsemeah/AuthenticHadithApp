@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { Input } from '@/components/ui/Input';
 import { HadithList } from '@/components/hadith/HadithList';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { expandSearchQuery } from '@/lib/search/topics';
+import { getSearchTerms } from '@/lib/search/topics';
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 import { Hadith } from '@/types/hadith';
 import { useRouter } from 'expo-router';
@@ -20,31 +20,28 @@ export default function SearchScreen() {
     queryFn: async () => {
       if (!debouncedQuery) return [];
 
-      // Sanitize the search query to prevent SQL injection
-      const sanitizedQuery = debouncedQuery.replace(/[%_]/g, '\\$&').trim()
-      
-      // Use Supabase's textSearch for full-text search (safer than ILIKE)
+      // Sanitize to prevent SQL injection
+      const sanitized = debouncedQuery.replace(/[%_]/g, '\\$&').trim();
+
+      // Expand to synonym terms (e.g. "sabr" → ["sabr", "patience", "perseverance"])
+      const terms = getSearchTerms(sanitized);
+
+      // Build OR conditions across expanded terms on both text fields
+      const orFilter = terms
+        .flatMap((term) => [
+          `english_translation.ilike.%${term}%`,
+          `narrator.ilike.%${term}%`,
+          `arabic_text.ilike.%${term}%`,
+        ])
+        .join(',');
+
       const { data, error } = await supabase
         .from('hadiths')
         .select('*')
-        .textSearch('english_text', sanitizedQuery, {
-          type: 'websearch',
-          config: 'english'
-        })
+        .or(orFilter)
         .limit(50);
 
-      if (error) {
-        // Fallback to ILIKE search if textSearch fails
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('hadiths')
-          .select('*')
-          .ilike('english_text', `%${sanitizedQuery}%`)
-          .limit(50);
-          
-        if (fallbackError) throw fallbackError;
-        return fallbackData as Hadith[];
-      }
-      
+      if (error) throw error;
       return data as Hadith[];
     },
     enabled: debouncedQuery.length > 2,
@@ -53,11 +50,11 @@ export default function SearchScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🔍 Search Hadiths</Text>
-        <Text style={styles.subtitle}>TruthSerum v2 with synonym expansion</Text>
-        
+        <Text style={styles.title}>Search Hadiths</Text>
+        <Text style={styles.subtitle}>Search in English, Arabic, or transliteration</Text>
+
         <Input
-          placeholder="Search by keyword, topic, or narrator..."
+          placeholder="e.g. patience, sabr, prayer, salah..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoCapitalize="none"
@@ -70,7 +67,7 @@ export default function SearchScreen() {
           hadiths={hadiths}
           isLoading={isLoading}
           onHadithPress={(hadith) => router.push(`/hadith/${hadith.id}`)}
-          emptyMessage="No hadiths found. Try different keywords."
+          emptyMessage="No hadiths found. Try a different keyword or transliteration."
         />
       ) : (
         <View style={styles.emptyState}>
