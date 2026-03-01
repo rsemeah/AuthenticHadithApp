@@ -1,12 +1,20 @@
-import { streamText } from "ai"
+import { streamText, tool } from "ai"
 import { createGroq } from "@ai-sdk/groq"
-import { requirePremium } from "@/lib/subscription"
+import { z } from "zod"
+import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { checkAIQuota, incrementAIUsage } from "@/lib/quotas/check"
+import {
+  checkInputSafety,
+  createBlockedStreamResponse,
+  ISLAMIC_ETHICS_ADDENDUM,
+} from "@/lib/islamic-safety-filter"
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
-const SYSTEM_PROMPT = `You are a knowledgeable Islamic scholar assistant specializing in hadith studies. Your name is SilentEngine.
+const SYSTEM_PROMPT =
+  `You are HadithChat, a knowledgeable Islamic scholar assistant specializing in hadith studies.
 
 Your role:
 1. Help users understand the meanings and context of hadiths
@@ -20,38 +28,118 @@ Guidelines:
 - Be respectful and educational in your responses
 - Acknowledge when there are scholarly differences of opinion
 - Use clear, accessible language while maintaining scholarly accuracy
-- When discussing hadith authenticity, reference the grading (Sahih, Hasan, Da'if, etc.)
+- When discussing hadith authenticity, reference the grading (Sahih, Hasan)
 - You only answer using authenticated hadith. If none are found, say so honestly.
+- When you search for hadiths, present the results in a clean readable format with the narrator, translation text, collection name, and grade.
 
-You have knowledge about the major hadith collections: Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Sunan at-Tirmidhi, Sunan an-Nasa'i, and Sunan Ibn Majah.`
+You have access to a database of 31,839 authenticated hadiths from: Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Jami at-Tirmidhi, Sunan an-Nasai, Sunan Ibn Majah, Muwatta Malik, and Musnad Ahmad.
+
+Use the searchHadiths tool to find relevant hadiths before answering questions.` +
+  ISLAMIC_ETHICS_ADDENDUM
 
 export async function POST(req: Request) {
   try {
-    // Premium-only feature - AI chat costs real money
-    await requirePremium()
-
     const { messages } = await req.json()
+
+    // Auth check
+    const supabase = await getSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "You must be logged in to use the AI assistant." }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      )
+    }
+
+    // Islamic safety filter — runs before quota check so blocked requests don't consume quota
+    const safetyResult = checkInputSafety(messages)
+    if (!safetyResult.allowed) {
+      console.info(`[HadithChat] Blocked message (${safetyResult.category}) for user ${user.id}`)
+      return createBlockedStreamResponse(safetyResult.blockedResponse!)
+    }
+
+    // Quota check
+    const quotaCheck = await checkAIQuota(user.id)
+
+    if (!quotaCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "quota_exceeded",
+          message: quotaCheck.reason,
+          quota: {
+            daily_remaining: quotaCheck.daily_remaining,
+            monthly_remaining: quotaCheck.monthly_remaining,
+            daily_limit: quotaCheck.daily_limit,
+            monthly_limit: quotaCheck.monthly_limit,
+            tier: quotaCheck.tier,
+          },
+          upgrade_url: "/pricing",
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      )
+    }
 
     const result = streamText({
       model: groq("llama-3.3-70b-versatile"),
       system: SYSTEM_PROMPT,
       messages,
+      tools: {
+        searchHadiths: tool({
+          description:
+            "Search the hadith database for relevant narrations by keyword. Use this when the user asks about a topic, narrator, or specific hadith.",
+          parameters: z.object({
+            query: z.string().describe("The search term to find relevant hadiths"),
+            limit: z.number().optional().default(5).describe("Max number of results"),
+          }),
+          execute: async ({ query, limit }) => {
+            const supabase = await getSupabaseServerClient()
+            const { data, error } = await supabase
+              .from("hadiths")
+              .select(
+                "id, hadith_number, collection, arabic_text, english_translation, narrator, grade, reference",
+              )
+              .or(
+                `english_translation.ilike.%${query}%,narrator.ilike.%${query}%,arabic_text.ilike.%${query}%`,
+              )
+              .limit(limit || 5)
+
+            if (error) {
+              return { results: [], error: error.message }
+            }
+
+            // Clean up any JSON-encoded translations
+            const cleaned = (data || []).map((h) => {
+              let text = h.english_translation || ""
+              let narrator = h.narrator || ""
+              if (text.startsWith("{") && text.includes('"text"')) {
+                try {
+                  const parsed = JSON.parse(text)
+                  text = parsed.text || text
+                  if (!narrator && parsed.narrator) narrator = parsed.narrator
+                } catch {
+                  // keep original
+                }
+              }
+              return { ...h, english_translation: text, narrator }
+            })
+
+            return { results: cleaned }
+          },
+        }),
+      },
+      maxSteps: 3,
+      onFinish: async () => {
+        // Increment usage after successful response
+        await incrementAIUsage(user.id)
+      },
     })
 
     return result.toDataStreamResponse()
   } catch (error) {
-    // Handle premium requirement error
-    if (error instanceof Error && error.message === "Premium subscription required") {
-      return new Response(
-        JSON.stringify({
-          error: "This feature requires a Premium subscription.",
-          code: "PREMIUM_REQUIRED",
-        }),
-        { status: 403, headers: { "Content-Type": "application/json" } },
-      )
-    }
-
-    console.error("[SilentEngine] Chat API error:", error)
+    console.error("[HadithChat] Chat API error:", error)
     return new Response(
       JSON.stringify({
         error: "Failed to process your request. Please try again.",

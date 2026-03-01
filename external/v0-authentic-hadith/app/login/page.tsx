@@ -1,68 +1,42 @@
-import { AuthForm } from "@/components/auth-form";
-import { IslamicPattern } from "@/components/islamic-pattern";
-import Link from "next/link";
+import { AuthForm } from "@/components/auth-form"
+import Image from "next/image"
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen marble-bg flex flex-col">
-      {/* Header */}
-      <header className="p-4 sm:p-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-[#1a1f36] hover:text-[#C5A059] transition-colors"
-        >
-          <svg
-            className="w-8 h-8"
-            viewBox="0 0 32 32"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle cx="16" cy="16" r="14" fill="#1B5E43" />
-            <path
-              d="M16 8L16 24M10 12L16 8L22 12M10 20L16 24L22 20"
-              stroke="#C5A059"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+    <div className="min-h-screen marble-bg flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Decorative border frame */}
+      <div className="absolute inset-4 border border-[#C5A059]/20 rounded-lg pointer-events-none" />
+
+      <div className="w-full max-w-sm relative z-10">
+        {/* Logo and branding */}
+        <div className="text-center mb-8">
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            <Image
+              src="/images/gemini-generated-image-xw5svjxw5svjxw5s.jpeg"
+              alt="Authentic Hadith Logo"
+              fill
+              className="object-contain rounded-full shadow-lg"
+              priority
             />
-          </svg>
-          <span className="font-serif font-bold text-lg">Authentic Hadith</span>
-        </Link>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md">
-          {/* Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white shadow-xl">
-            {/* Islamic Pattern Background */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-              <IslamicPattern />
-            </div>
-
-            {/* Content */}
-            <div className="relative p-6 sm:p-8">
-              <div className="text-center mb-8">
-                <h1 className="text-2xl font-serif font-bold text-[#1a1f36] mb-2">
-                  Welcome Back
-                </h1>
-                <p className="text-muted-foreground">
-                  Sign in to continue your journey
-                </p>
-              </div>
-
-              <AuthForm />
-            </div>
           </div>
-
-          {/* Back to home link */}
-          <p className="text-center mt-6 text-sm text-muted-foreground">
-            <Link href="/" className="hover:text-[#C5A059] transition-colors">
-              ← Back to home
-            </Link>
+          <h1 className="text-2xl font-bold gold-text tracking-[0.15em] uppercase">
+            Authentic Hadith
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1 tracking-wide">
+            Your journey to prophetic wisdom
           </p>
         </div>
-      </main>
+
+        {/* Auth Card */}
+        <div className="premium-card rounded-xl p-6 shadow-xl">
+          <AuthForm />
+        </div>
+
+        {/* Footer text */}
+        <p className="text-center text-xs text-muted-foreground mt-6 tracking-wide">
+          Verified hadith from trusted scholars
+        </p>
+      </div>
     </div>
-  );
+  )
 }
