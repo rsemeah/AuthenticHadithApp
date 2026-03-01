@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import 'react-native-reanimated';
 import Purchases from 'react-native-purchases';
 
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ReactQueryProvider } from '@/lib/providers/react-query-provider';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ThemeProvider, useTheme } from '@/lib/theme/ThemeProvider';
@@ -28,6 +30,15 @@ function AppContent() {
   const { isDark } = useTheme();
 
   return (
+    <ReactQueryProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </ReactQueryProvider>
     <NavigationThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
