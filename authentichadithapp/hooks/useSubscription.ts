@@ -1,33 +1,28 @@
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase/client'
-import { useAuth } from '../lib/auth/AuthProvider'
+import { useRevenueCatSubscription } from './useRevenueCatSubscription'
 
-interface Subscription {
-  id: string
-  user_id: string
-  status: 'active' | 'canceled' | 'past_due'
-  current_period_end: string
-  cancel_at_period_end: boolean
-}
-
+/**
+ * Backward-compatible subscription hook that now uses RevenueCat.
+ */
 export function useSubscription() {
-  const { user } = useAuth()
+  const {
+    isPro,
+    isLoading,
+    expirationDate,
+    willRenew,
+    productIdentifier,
+  } = useRevenueCatSubscription()
 
-  return useQuery({
-    queryKey: ['subscription', user?.id],
-    queryFn: async () => {
-      if (!user) return null
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .single()
-
-      if (error && error.code !== 'PGRST116') throw error
-      return data as Subscription | null
-    },
-    enabled: !!user,
-  })
+  return {
+    data: isPro
+      ? {
+          id: productIdentifier ?? 'revenuecat',
+          user_id: '',
+          status: 'active' as const,
+          current_period_end: expirationDate ?? '',
+          cancel_at_period_end: !willRenew,
+        }
+      : null,
+    isLoading,
+    error: null,
+  }
 }

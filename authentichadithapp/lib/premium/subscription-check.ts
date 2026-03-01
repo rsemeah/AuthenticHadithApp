@@ -1,19 +1,12 @@
-import { supabase } from '../supabase/client'
+import Purchases from 'react-native-purchases'
+import { ENTITLEMENT_ID } from '../revenuecat/config'
 
 export async function checkPremiumFeature(userId: string | undefined): Promise<boolean> {
   if (!userId) return false
 
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('is_premium, subscription_status')
-      .eq('id', userId)
-      .single()
-
-    if (error) return false
-
-    return data.is_premium === true && 
-           (data.subscription_status === 'active' || data.subscription_status === null)
+    const customerInfo = await Purchases.getCustomerInfo()
+    return customerInfo.entitlements.active[ENTITLEMENT_ID]?.isActive === true
   } catch {
     return false
   }

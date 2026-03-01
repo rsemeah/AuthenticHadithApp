@@ -1,27 +1,46 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Modal, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { usePremiumStatus } from '@/hooks/usePremiumStatus';
+import { useRevenueCatSubscription } from '@/hooks/useRevenueCatSubscription';
+import { PaywallScreen } from '@/components/premium/PaywallScreen';
+import { CustomerCenterScreen } from '@/components/premium/CustomerCenterScreen';
 import { COLORS, SPACING, FONT_SIZES } from '@/lib/styles/colors';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, isGuest, signOut } = useAuth();
   const { isPremium } = usePremiumStatus();
+  const { restorePurchases, expirationDate, productIdentifier } = useRevenueCatSubscription();
+  const [showPaywall, setShowPaywall] = React.useState(false);
+  const [showCustomerCenter, setShowCustomerCenter] = React.useState(false);
+  const [restoring, setRestoring] = React.useState(false);
 
   const handleSignOut = async () => {
     await signOut();
     router.replace('/');
   };
 
+  const handleRestore = async () => {
+    setRestoring(true);
+    try {
+      await restorePurchases();
+      Alert.alert('Restore Complete', 'Your purchases have been restored.');
+    } catch (error: any) {
+      Alert.alert('Restore Failed', error.message || 'Could not restore purchases.');
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   if (isGuest) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>👤 Profile</Text>
+          <Text style={styles.title}>Profile</Text>
         </View>
         <View style={styles.guestContainer}>
           <Text style={styles.guestText}>
@@ -45,21 +64,57 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>👤 Profile</Text>
+        <Text style={styles.title}>Profile</Text>
       </View>
 
       <View style={styles.content}>
         <Card style={styles.profileCard}>
           <Text style={styles.email}>{user?.email}</Text>
-          {isPremium && (
+          {isPremium ? (
             <View style={styles.premiumBadge}>
-              <Text style={styles.premiumText}>⭐ Premium Member</Text>
+              <Text style={styles.premiumText}>Pro Member</Text>
             </View>
+          ) : (
+            <Button
+              title="Upgrade to Pro"
+              variant="primary"
+              onPress={() => setShowPaywall(true)}
+              style={styles.upgradeButton}
+            />
           )}
         </Card>
 
+        {isPremium && (
+          <Card style={styles.section}>
+            <Text style={styles.sectionTitle}>Subscription</Text>
+            {productIdentifier && (
+              <Text style={styles.subscriptionDetail}>
+                Plan: {productIdentifier}
+              </Text>
+            )}
+            {expirationDate && (
+              <Text style={styles.subscriptionDetail}>
+                Renews: {new Date(expirationDate).toLocaleDateString()}
+              </Text>
+            )}
+            <Button
+              title="Manage Subscription"
+              onPress={() => setShowCustomerCenter(true)}
+              variant="outline"
+            />
+          </Card>
+        )}
+
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>My Account</Text>
+          {!isPremium && (
+            <Button
+              title="Restore Purchases"
+              onPress={handleRestore}
+              variant="outline"
+              disabled={restoring}
+            />
+          )}
           <Button
             title="Redeem Promo Code"
             onPress={() => router.push('/redeem')}
@@ -80,6 +135,30 @@ export default function ProfileScreen() {
           />
         </Card>
       </View>
+
+      <Modal
+        visible={showPaywall}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowPaywall(false)}
+      >
+        <PaywallScreen
+          onDismiss={() => setShowPaywall(false)}
+          onPurchaseCompleted={() => setShowPaywall(false)}
+          onRestoreCompleted={() => setShowPaywall(false)}
+        />
+      </Modal>
+
+      <Modal
+        visible={showCustomerCenter}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCustomerCenter(false)}
+      >
+        <CustomerCenterScreen
+          onDismiss={() => setShowCustomerCenter(false)}
+        />
+      </Modal>
     </ScrollView>
   );
 }
@@ -136,6 +215,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     fontWeight: '600',
   },
+  upgradeButton: {
+    marginTop: SPACING.sm,
+  },
   section: {
     marginBottom: SPACING.md,
     gap: SPACING.sm,
@@ -145,5 +227,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.bronzeText,
     marginBottom: SPACING.sm,
+  },
+  subscriptionDetail: {
+    fontSize: FONT_SIZES.base,
+    color: COLORS.mutedText,
+    marginBottom: SPACING.xs,
   },
 });
