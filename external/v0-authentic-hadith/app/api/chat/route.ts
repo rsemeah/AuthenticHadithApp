@@ -2,12 +2,19 @@ import { streamText, tool } from "ai"
 import { createGroq } from "@ai-sdk/groq"
 import { z } from "zod"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { checkAIQuota, incrementAIUsage } from "@/lib/quotas/check"
+import {
+  checkInputSafety,
+  createBlockedStreamResponse,
+  ISLAMIC_ETHICS_ADDENDUM,
+} from "@/lib/islamic-safety-filter"
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 })
 
-const SYSTEM_PROMPT = `You are TruthSerum, a knowledgeable Islamic scholar assistant specializing in hadith studies.
+const SYSTEM_PROMPT =
+  `You are HadithChat, a knowledgeable Islamic scholar assistant specializing in hadith studies.
 
 Your role:
 1. Help users understand the meanings and context of hadiths
@@ -27,11 +34,53 @@ Guidelines:
 
 You have access to a database of 31,839 authenticated hadiths from: Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Jami at-Tirmidhi, Sunan an-Nasai, Sunan Ibn Majah, Muwatta Malik, and Musnad Ahmad.
 
-Use the searchHadiths tool to find relevant hadiths before answering questions.`
+Use the searchHadiths tool to find relevant hadiths before answering questions.` +
+  ISLAMIC_ETHICS_ADDENDUM
 
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json()
+
+    // Auth check
+    const supabase = await getSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "You must be logged in to use the AI assistant." }),
+        { status: 401, headers: { "Content-Type": "application/json" } },
+      )
+    }
+
+    // Islamic safety filter — runs before quota check so blocked requests don't consume quota
+    const safetyResult = checkInputSafety(messages)
+    if (!safetyResult.allowed) {
+      console.info(`[HadithChat] Blocked message (${safetyResult.category}) for user ${user.id}`)
+      return createBlockedStreamResponse(safetyResult.blockedResponse!)
+    }
+
+    // Quota check
+    const quotaCheck = await checkAIQuota(user.id)
+
+    if (!quotaCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "quota_exceeded",
+          message: quotaCheck.reason,
+          quota: {
+            daily_remaining: quotaCheck.daily_remaining,
+            monthly_remaining: quotaCheck.monthly_remaining,
+            daily_limit: quotaCheck.daily_limit,
+            monthly_limit: quotaCheck.monthly_limit,
+            tier: quotaCheck.tier,
+          },
+          upgrade_url: "/pricing",
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } },
+      )
+    }
 
     const result = streamText({
       model: groq("llama-3.3-70b-versatile"),
@@ -82,11 +131,15 @@ export async function POST(req: Request) {
         }),
       },
       maxSteps: 3,
+      onFinish: async () => {
+        // Increment usage after successful response
+        await incrementAIUsage(user.id)
+      },
     })
 
     return result.toDataStreamResponse()
   } catch (error) {
-    console.error("[TruthSerum] Chat API error:", error)
+    console.error("[HadithChat] Chat API error:", error)
     return new Response(
       JSON.stringify({
         error: "Failed to process your request. Please try again.",
