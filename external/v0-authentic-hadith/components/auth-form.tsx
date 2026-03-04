@@ -37,7 +37,7 @@ export function AuthForm() {
       return
     }
 
-    // Check if user has completed onboarding
+    // Route user based on onboarding and plan selection status
     if (data?.user) {
       const { data: prefs } = await supabase
         .from("user_preferences")
@@ -46,7 +46,19 @@ export function AuthForm() {
         .single()
 
       if (prefs?.onboarded) {
-        router.push("/home")
+        // Check if they've ever selected a plan (free or paid)
+        const { data: subscription } = await supabase
+          .from("subscriptions")
+          .select("status")
+          .eq("user_id", data.user.id)
+          .single()
+
+        if (subscription) {
+          router.push("/home")
+        } else {
+          // Onboarded but hasn't chosen a plan yet — send to pricing
+          router.push("/pricing")
+        }
       } else {
         router.push("/onboarding")
       }

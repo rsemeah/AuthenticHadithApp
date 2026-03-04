@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr"
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config"
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/", "/login", "/auth/callback", "/reset-password", "/pricing"]
+const PUBLIC_ROUTES = ["/", "/login", "/auth/callback", "/reset-password", "/pricing", "/checkout/success"]
 
 // Routes that authenticated users should NOT see (redirect to /home)
 const AUTH_ROUTES = ["/login"]
@@ -57,19 +57,29 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Authenticated user trying to access login page -- redirect to home
+  // Authenticated user trying to access login page -- redirect appropriately
   if (isAuthRoute) {
-    // Check if they've completed onboarding
     const { data: prefs } = await supabase
       .from("user_preferences")
       .select("onboarded")
       .eq("user_id", user.id)
       .single()
 
-    if (prefs?.onboarded) {
+    if (!prefs?.onboarded) {
+      return NextResponse.redirect(new URL("/onboarding", request.url))
+    }
+
+    // Check if they've selected a plan
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("status")
+      .eq("user_id", user.id)
+      .single()
+
+    if (subscription) {
       return NextResponse.redirect(new URL("/home", request.url))
     } else {
-      return NextResponse.redirect(new URL("/onboarding", request.url))
+      return NextResponse.redirect(new URL("/pricing", request.url))
     }
   }
 

@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/?error=auth`)
   }
 
-  // Check if user already has a profile + preferences (returning user)
+  // Get user after auth
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -64,17 +64,40 @@ export async function GET(request: Request) {
       .single()
 
     if (prefs?.onboarded) {
-      // Returning user -- set onboarded cookie and go to home
-      const response = NextResponse.redirect(`${origin}/home`)
-      response.cookies.set("qbos_onboarded", "1", {
-        path: "/",
-        maxAge: 31536000,
-        sameSite: "lax",
-      })
-      return response
+      // Check if they've selected a plan (have a subscriptions record)
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("status")
+        .eq("user_id", user.id)
+        .single()
+
+      if (subscription) {
+        // Returning user with a plan — go home
+        const response = NextResponse.redirect(`${origin}/home`)
+        response.cookies.set("qbos_onboarded", "1", {
+          path: "/",
+          maxAge: 31536000,
+          sameSite: "lax",
+        })
+        response.cookies.set("qbos_plan_selected", "1", {
+          path: "/",
+          maxAge: 31536000,
+          sameSite: "lax",
+        })
+        return response
+      } else {
+        // Onboarded but never selected a plan — go to pricing
+        const response = NextResponse.redirect(`${origin}/pricing`)
+        response.cookies.set("qbos_onboarded", "1", {
+          path: "/",
+          maxAge: 31536000,
+          sameSite: "lax",
+        })
+        return response
+      }
     }
   }
 
-  // New user or not yet onboarded -- send to onboarding
+  // New user or not yet onboarded — send to onboarding
   return NextResponse.redirect(`${origin}/onboarding`)
 }

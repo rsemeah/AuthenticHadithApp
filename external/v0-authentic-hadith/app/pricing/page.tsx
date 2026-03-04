@@ -1,14 +1,27 @@
 "use client"
 
 import React from "react"
-
 import { useState, Suspense } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Check, Star, Crown, Zap, Infinity, X } from "lucide-react"
+import {
+  ChevronLeft,
+  Check,
+  Star,
+  Crown,
+  Zap,
+  Infinity,
+  X,
+  Loader2,
+  Shield,
+  BookOpen,
+  MessageCircle,
+} from "lucide-react"
 import { BottomNavigation } from "@/components/home/bottom-navigation"
 import { PRODUCTS } from "@/lib/products"
 import type { Product } from "@/lib/products"
 import dynamic from "next/dynamic"
+import { selectFreePlan } from "@/app/actions/stripe"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 const Checkout = dynamic(() => import("@/components/checkout"), { ssr: false })
 
@@ -46,10 +59,129 @@ const planIcons: Record<string, React.ReactNode> = {
   "lifetime-access": <Infinity className="w-5 h-5 text-[#C5A059]" />,
 }
 
+// Soft upsell modal shown when user picks the free plan
+function FreeUpsellModal({
+  onUpgrade,
+  onContinueFree,
+  loading,
+}: {
+  onUpgrade: () => void
+  onContinueFree: () => void
+  loading: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#C5A059] to-[#E8C77D] p-6 text-white text-center">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-white/20 flex items-center justify-center">
+            <Star className="w-7 h-7 text-white" />
+          </div>
+          <h2 className="text-xl font-bold">Before You Continue...</h2>
+          <p className="text-sm text-white/90 mt-1">Here's what you'd unlock with Premium</p>
+        </div>
+
+        {/* What they're missing */}
+        <div className="p-6 space-y-3">
+          {[
+            { icon: <MessageCircle className="w-4 h-4 text-[#C5A059]" />, text: "Unlimited AI-powered explanations & assistant" },
+            { icon: <BookOpen className="w-4 h-4 text-[#C5A059]" />, text: "All learning paths & progress tracking" },
+            { icon: <Shield className="w-4 h-4 text-[#C5A059]" />, text: "Advanced hadith search & semantic search" },
+            { icon: <Star className="w-4 h-4 text-[#C5A059]" />, text: "Priority support & early feature access" },
+          ].map(({ icon, text }) => (
+            <div key={text} className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-[#F8F6F2] flex items-center justify-center shrink-0">
+                {icon}
+              </div>
+              <span className="text-sm text-[#4a5568]">{text}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="px-6 text-xs text-center text-[#6b7280]">
+          Plans start at just <strong className="text-[#C5A059]">$4.99/month</strong> — less than a cup of coffee.
+        </p>
+
+        {/* Actions */}
+        <div className="p-6 pt-4 space-y-3">
+          <button
+            onClick={onUpgrade}
+            className="w-full py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-white hover:opacity-90 shadow-md transition-all"
+          >
+            See Premium Plans
+          </button>
+          <button
+            onClick={onContinueFree}
+            disabled={loading}
+            className="w-full py-3 rounded-xl font-semibold text-sm border border-[#e5e7eb] text-[#6b7280] hover:border-[#C5A059] hover:text-[#C5A059] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Setting up your account...
+              </>
+            ) : (
+              "Continue with Free Plan"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PricingContent() {
   const router = useRouter()
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [showFreeUpsell, setShowFreeUpsell] = useState(false)
+  const [selectingFree, setSelectingFree] = useState(false)
+
+  const handleSelectPlan = async (productId: string) => {
+    // Check authentication before proceeding
+    const supabase = getSupabaseBrowserClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      router.push(`/login?next=/pricing`)
+      return
+    }
+
+    setCheckoutError(null)
+    setSelectedProduct(productId)
+  }
+
+  const handleSelectFree = async () => {
+    // Check authentication
+    const supabase = getSupabaseBrowserClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      router.push(`/login?next=/pricing`)
+      return
+    }
+
+    // Show the upsell modal instead of going straight to free
+    setShowFreeUpsell(true)
+  }
+
+  const handleConfirmFree = async () => {
+    setSelectingFree(true)
+    try {
+      await selectFreePlan()
+      document.cookie = "qbos_plan_selected=1; path=/; max-age=31536000; SameSite=Lax"
+      router.push("/home")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again."
+      setCheckoutError(message)
+      setShowFreeUpsell(false)
+      setSelectingFree(false)
+    }
+  }
 
   if (selectedProduct) {
     return (
@@ -83,7 +215,7 @@ function PricingContent() {
               </button>
             </div>
           ) : (
-            <Checkout productId={selectedProduct} />
+            <Checkout productId={selectedProduct} onError={(msg) => setCheckoutError(msg)} />
           )}
         </main>
       </div>
@@ -92,6 +224,15 @@ function PricingContent() {
 
   return (
     <div className="min-h-screen marble-bg pb-20 md:pb-0">
+      {/* Free plan upsell modal */}
+      {showFreeUpsell && (
+        <FreeUpsellModal
+          onUpgrade={() => setShowFreeUpsell(false)}
+          onContinueFree={handleConfirmFree}
+          loading={selectingFree}
+        />
+      )}
+
       <header className="sticky top-0 z-40 border-b border-[#e5e7eb] bg-[#F8F6F2]/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <button
@@ -114,6 +255,12 @@ function PricingContent() {
             Get full access to AI explanations, advanced search, learning paths, and more.
           </p>
         </div>
+
+        {checkoutError && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm text-center">
+            {checkoutError}
+          </div>
+        )}
 
         <div className="space-y-4">
           {PRODUCTS.map((plan) => (
@@ -164,7 +311,7 @@ function PricingContent() {
               )}
 
               <button
-                onClick={() => setSelectedProduct(plan.id)}
+                onClick={() => handleSelectPlan(plan.id)}
                 className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
                   plan.highlighted
                     ? "bg-gradient-to-r from-[#C5A059] to-[#E8C77D] text-white hover:opacity-90 shadow-md"
@@ -178,15 +325,16 @@ function PricingContent() {
             </div>
           ))}
 
+          {/* Free Tier Card */}
           <div className="rounded-xl border border-dashed border-[#e5e7eb] p-5 bg-white/50">
             <h3 className="text-sm font-semibold text-[#6b7280] uppercase tracking-wider mb-3">
-              Free Tier (Current)
+              Free Plan
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2 mb-5">
               {[
                 "Browse all 8 hadith collections",
                 "Basic search",
-                "Save & bookmark hadiths",
+                "Save & bookmark hadiths (up to 10)",
                 "AI assistant (limited)",
               ].map((feature) => (
                 <li key={feature} className="flex items-center gap-2 text-sm text-[#6b7280]">
@@ -195,6 +343,12 @@ function PricingContent() {
                 </li>
               ))}
             </ul>
+            <button
+              onClick={handleSelectFree}
+              className="w-full py-3 rounded-xl font-semibold text-sm border border-[#e5e7eb] text-[#6b7280] hover:border-[#C5A059] hover:text-[#C5A059] transition-all"
+            >
+              Continue with Free Plan
+            </button>
           </div>
         </div>
       </main>
