@@ -13,7 +13,8 @@ function SuccessContent() {
 
   useEffect(() => {
     if (sessionId) {
-      // Session exists, payment was completed
+      // Set plan selected cookie so returning sign-ins route directly to home
+      document.cookie = "qbos_plan_selected=1; path=/; max-age=31536000; SameSite=Lax"
       setStatus("success")
     } else {
       setStatus("error")
@@ -48,16 +49,16 @@ function SuccessContent() {
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#1B5E43]/10 flex items-center justify-center">
           <CheckCircle className="w-10 h-10 text-[#1B5E43]" />
         </div>
-        <h1 className="text-2xl font-bold text-[#1a1f36] mb-2">Payment Successful</h1>
-        <p className="text-[#6b7280] mb-8">
-          Thank you for supporting Authentic Hadith. Your premium access is now active.
+        <h1 className="text-2xl font-bold text-[#1a1f36] mb-2">Payment Successful!</h1>
+        <p className="text-[#6b7280] mb-2">
+          BarakAllahu feekum — may Allah bless your pursuit of prophetic wisdom.
+        </p>
+        <p className="text-[#6b7280] mb-8 text-sm">
+          Your premium access is now active. It may take a moment to reflect in your account.
         </p>
         <div className="flex flex-col gap-3">
           <Link href="/home" className="px-6 py-3 gold-button rounded-lg text-sm inline-block">
             Go to Home
-          </Link>
-          <Link href="/login" className="px-6 py-3 text-sm text-[#6b7280] hover:text-[#1a1f36] transition-colors">
-            Sign in to your account
           </Link>
         </div>
       </div>

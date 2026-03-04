@@ -4,6 +4,40 @@ import { stripe } from "@/lib/stripe"
 import { getProductById, STRIPE_COUPONS } from "@/lib/products"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 
+export async function selectFreePlan() {
+  const supabase = await getSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error("You must be logged in to select a plan")
+  }
+
+  // Create a free subscription record so the system knows the user has selected a plan
+  await supabase.from("subscriptions").upsert(
+    {
+      user_id: user.id,
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      product_id: "free",
+      status: "free",
+      current_period_start: new Date().toISOString(),
+      current_period_end: null,
+    },
+    { onConflict: "user_id" },
+  )
+
+  // Ensure profile reflects free tier
+  await supabase
+    .from("profiles")
+    .update({
+      subscription_tier: "free",
+      subscription_status: "active",
+    })
+    .eq("user_id", user.id)
+}
+
 export async function startCheckoutSession(productId: string) {
   const product = getProductById(productId)
   if (!product) {

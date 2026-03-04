@@ -82,9 +82,9 @@ export default function OnboardingPage() {
   }
 
   const handleSkip = () => {
-    // Set onboarded cookie and redirect to home
+    // Set onboarded cookie and route to pricing for plan selection
     document.cookie = "qbos_onboarded=1; path=/; max-age=31536000; SameSite=Lax"
-    router.push("/home")
+    router.push("/pricing")
   }
 
   const handleComplete = async () => {
@@ -191,7 +191,8 @@ export default function OnboardingPage() {
   }
 
   const handleSuccessComplete = () => {
-    router.push("/home")
+    // Route new users to pricing so they can choose a plan (free or paid)
+    router.push("/pricing")
   }
 
   return (
